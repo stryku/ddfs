@@ -8,6 +8,12 @@ all:
 clean:
 	make -C $(KERNELDIR) M=$(PWD) clean
 
+insert: all rmmod
+	sudo insmod ddfs.ko
+
+rmmod:
+	sudo rmmod ddfs
+
 install:
 	make -C $(KERNELDIR) M=$(PWD) modules_install
 
