@@ -1,4 +1,4 @@
-KERNELDIR = ..
+KERNELDIR = /lib/modules/`uname -r`/build
 modules = ddfs.ko
 obj-m += ddfs.o
 
