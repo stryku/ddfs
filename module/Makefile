@@ -16,6 +16,7 @@ all:
 
 clean:
 	make -C $(KERNELDIR) M=$(CURDIR) clean
+	-rm ddfs_*_test.*
 
 insert: all rmmod
 	sudo insmod ddfs.ko
