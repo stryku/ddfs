@@ -2414,7 +2414,7 @@ static struct dentry *ddfs_mount(struct file_system_type *fs_type, int flags,
 
 static struct file_system_type ddfs_fs_type = {
 	.owner = THIS_MODULE,
-	.name = "ddfs",
+	.name = KBUILD_MODNAME,
 	.mount = ddfs_mount,
 	.kill_sb = kill_block_super,
 	.fs_flags = FS_REQUIRES_DEV,
@@ -2489,7 +2489,7 @@ static void __exit exit_ddfs_fs(void)
 	dd_print("~exit_ddfs_fs");
 }
 
-MODULE_ALIAS_FS("ddfs");
+MODULE_ALIAS_FS(KBUILD_MODNAME);
 
 module_init(init_ddfs_fs);
 module_exit(exit_ddfs_fs);
