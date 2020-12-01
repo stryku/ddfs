@@ -10,7 +10,7 @@ obj-m += $(module_name).o
 
 all:
 	-echo "Building module with name: ${module_name}"
-	-cp ddfs.c $(module_name).c
+	-if [ "${module_name}" != "ddfs" ]; then  cp ddfs.c $(module_name).c; fi
 	make KCPPFLAGS='-DDDFS_MODULE_NAME=${module_name}' -C $(KERNELDIR) M=$(CURDIR) modules
 
 clean:
