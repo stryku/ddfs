@@ -1,9 +1,11 @@
-SUBDIRS = module
+SUBDIRS = module test
 
-all: module
+all: module test
 
 module:
 	make -C module
 
+test:
+	make -C test
 
-.PHONY: all module
+.PHONY: all module test
