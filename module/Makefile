@@ -4,19 +4,18 @@ ifndef module_name
 	module_name=ddfs
 endif
 
-modules = ddfs_$(module_name)_test.ko
-obj-m += ddfs_$(module_name)_test.o
+obj-m += $(module_name).o
 
 # CFLAGS += -DDDFS_MODULE_NAME=\"$(module_name)\"
 
 all:
-	-echo "DDFS_MODULE_NAME = ${module_name}"
-	-cp ddfs.c ddfs_$(module_name)_test.c
+	-echo "Building module with name: ${module_name}"
+	-cp ddfs.c $(module_name).c
 	make KCPPFLAGS='-DDDFS_MODULE_NAME=${module_name}' -C $(KERNELDIR) M=$(CURDIR) modules
 
 clean:
 	make -C $(KERNELDIR) M=$(CURDIR) clean
-	-rm ddfs_*_test.*
+	-rm ddfs_test_*
 
 insert: all rmmod
 	sudo insmod ddfs.ko
