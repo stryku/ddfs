@@ -1,16 +1,18 @@
 KERNELDIR = /lib/modules/`uname -r`/build
-modules = ddfs.ko
-obj-m += ddfs.o
 
-# ifndef module_name
-#     module_name=ddfs
-# endif
+ifndef module_name
+	module_name=ddfs
+endif
 
-# CFLAGS += -DDDFS_MODULE_NAME=$module_name
+modules = ddfs_$(module_name)_test.ko
+obj-m += ddfs_$(module_name)_test.o
+
+# CFLAGS += -DDDFS_MODULE_NAME=\"$(module_name)\"
 
 all:
-	-echo $(CURDIR)
-	make -C $(KERNELDIR) M=$(CURDIR) modules
+	-echo "DDFS_MODULE_NAME = ${module_name}"
+	-cp ddfs.c ddfs_$(module_name)_test.c
+	make KCPPFLAGS='-DDDFS_MODULE_NAME=${module_name}' -C $(KERNELDIR) M=$(CURDIR) modules
 
 clean:
 	make -C $(KERNELDIR) M=$(CURDIR) clean
