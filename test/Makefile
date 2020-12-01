@@ -1,6 +1,6 @@
 all: test
 
 test:
-	echo Running test
+	./test_dry_run.sh | tee test_dry_run.log
 
 .PHONY: test

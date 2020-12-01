@@ -2489,7 +2489,13 @@ static void __exit exit_ddfs_fs(void)
 	dd_print("~exit_ddfs_fs");
 }
 
+#define str(s) #s
+
+#ifndef DDFS_MODULE_NAME
 MODULE_ALIAS_FS("ddfs");
+#else
+MODULE_ALIAS_FS(str(DDFS_MODULE_NAME));
+#endif
 
 module_init(init_ddfs_fs);
 module_exit(exit_ddfs_fs);
