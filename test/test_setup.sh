@@ -13,7 +13,7 @@ test_log "Test setup module path: $MODULE_PATH, DDFS_DIR: ${DDFS_DIR}, DDFS_IMG:
 
 
 test_log "Formatting DDFS_IMG... with block_size=512, sectors_per_cluster=1 and number_of_clusters=4"
-printf "\x000002000000000100000004" > $DDFS_IMG
+printf "\x00\x02\x00\x00\x01\x00\x00\x00\x04\x00\x00\x00" > $DDFS_IMG
 if [ $? -ne 0 ]; then
     test_log "FAILED Formatting DDFS_IMG"
     exit 1

@@ -5,8 +5,7 @@
 
 TEST_CASE("DDFS", "FileCreation")
 {
-	const std::string file_path =
-		DDFS_MOUNTED_DIR + std::string{ "/test_create_file_aaa" };
+	const std::string file_path = DDFS_MOUNTED_DIR + std::string{ "/aaa" };
 	FILE *fp = std::fopen(file_path.c_str(), "w");
 	REQUIRE(fp != nullptr);
 
