@@ -44,7 +44,7 @@ fi
 echo "[test_dry_run] Insering module... OK"
 
 echo "[test_dry_run] Mounting ddfs..."
-mount -t ddfs -o loop $IMG $DIR
+mount -t $MODULE_NAME -o loop $IMG $DIR
 ec=$?
 if [ $ec -ne 0 ]; then
     save_journal
