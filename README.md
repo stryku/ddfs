@@ -19,3 +19,6 @@ Tests include inserting/removing module thus they need to be run as root.
 sudo make test
 ```
 
+# Dependencies
+* C++
+* googletest
