@@ -7,10 +7,22 @@
 
 TEST_CASE("DDFS.FileCreation")
 {
-	const std::string file_path = make_path("/aaa");
-	FILE *fp = std::fopen(file_path.c_str(), "w");
+	FILE *fp = std::fopen(make_path("/aaa").c_str(), "w");
 	REQUIRE(fp != nullptr);
 
-	const auto result = std::fclose(fp);
-	REQUIRE(result == 0);
+	REQUIRE(std::fclose(fp) == 0);
+}
+
+TEST_CASE("DDFS.MultipleFileCreation")
+{
+	FILE *fpa = std::fopen(make_path("/aaa").c_str(), "w");
+	REQUIRE(fpa != nullptr);
+	FILE *fpb = std::fopen(make_path("/bbb").c_str(), "w");
+	REQUIRE(fpb != nullptr);
+	FILE *fpc = std::fopen(make_path("/ccc").c_str(), "w");
+	REQUIRE(fpc != nullptr);
+
+	REQUIRE(std::fclose(fpa) == 0);
+	REQUIRE(std::fclose(fpb) == 0);
+	REQUIRE(std::fclose(fpc) == 0);
 }
