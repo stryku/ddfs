@@ -11,7 +11,11 @@ test:
 	make module_name=${random_module_name} module 
 	make module_name=${random_module_name} -C test
 
+runalltests: test .FORCE
+	-cd test && ./run_all_tests.sh ${random_module_name}
+
 clean:
 	make -C module clean
 
 .PHONY: all module test
+.FORCE:

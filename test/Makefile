@@ -1,6 +1,12 @@
-all: test
+# all: test
 
-test:
-	./test_dry_run.sh ${module_name} | tee test_dry_run.log
+DDFS_DIR := $(shell mktemp -d)
+DDFS_IMG := $(shell mktemp)
 
-.PHONY: test
+all: $(patsubst %.cpp, %.out, $(wildcard *.cpp)) 
+%.out: %.cpp
+	$(CXX) $(CFLAGS) -DDDFS_MOUNTED_DIR=\"${DDFS_DIR}\" $< -o $@ -lm
+
+test: all
+
+.PHONY: test .FORCE
