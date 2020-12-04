@@ -1,13 +1,14 @@
 #include <cstdio>
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define DOCTEST_CONFIG_IMPLEMENT
 #include "3rdparty/doctest.h"
 
 #include "common.hpp"
 
 TEST_CASE("DDFS.FileCreation")
 {
-	FILE *fp = std::fopen(make_path("/aaa").c_str(), "w");
+	FILE *fp = std::fopen(make_path("/aaaaaaaaaaaaaaaaaaaaaaaaaaa").c_str(),
+			      "w");
 	REQUIRE(fp != nullptr);
 
 	REQUIRE(std::fclose(fp) == 0);

@@ -1,6 +1,7 @@
 #include <cstdio>
+#include <iostream>
 
-#define DOCTEST_CONFIG_IMPLEMENT_WITH_MAIN
+#define DOCTEST_CONFIG_IMPLEMENT
 #include "3rdparty/doctest.h"
 
 #include "common.hpp"
