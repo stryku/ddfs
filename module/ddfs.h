@@ -114,6 +114,22 @@ static inline struct ddfs_sb_info *DDFS_SB(struct super_block *sb)
 	return sb->s_fs_info;
 }
 
+inline struct ddfs_dir_entry_calc_params
+ddfs_make_dir_entry_calc_params(struct super_block *sb, struct inode *dir)
+{
+	const struct ddfs_sb_info *sbi = DDFS_SB(sb);
+	struct ddfs_inode_info *dd_dir = DDFS_I(dir);
+	const struct ddfs_dir_entry_calc_params calc_params = {
+		.entries_per_cluster = sbi->entries_per_cluster,
+		.blocks_per_cluster = sbi->blocks_per_cluster,
+		.data_cluster_no = sbi->data_cluster_no,
+		.block_size = sb->s_blocksize,
+		.dir_logical_start = dd_dir->i_logstart
+	};
+
+	return calc_params;
+}
+
 void dump_dir_entry_offsets(struct dir_entry_offsets *offsets)
 {
 	dd_print("dump_dir_entry_offsets: %p", offsets);
@@ -137,90 +153,6 @@ void dump_dir_entry_offsets(struct dir_entry_offsets *offsets)
 		 offsets->first_cluster.block_on_device);
 	dd_print("\t\toffsets->first_cluster.offset_on_block: %u",
 		 offsets->first_cluster.offset_on_block);
-}
-
-static inline struct dir_entry_part_offsets
-calc_dir_entry_part_offsets(struct inode *dir, unsigned entry_index,
-			    unsigned entries_offset_on_cluster,
-			    unsigned entry_part_size)
-{
-	struct super_block *sb = dir->i_sb;
-	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	const struct ddfs_inode_info *dd_idir = DDFS_I(dir);
-
-	const unsigned entry_index_on_cluster =
-		entry_index % sbi->entries_per_cluster;
-
-	// Logical cluster no on which the entry lays
-	const unsigned entry_logic_cluster_no =
-		dd_idir->i_logstart + (entry_index / sbi->entries_per_cluster);
-
-	// The entry part offset on cluster. In bytes.
-	const unsigned offset_on_cluster =
-		entries_offset_on_cluster +
-		entry_index_on_cluster * entry_part_size;
-
-	// The entry part block on cluster
-	const unsigned entry_part_block_no_on_logic_cluster =
-		offset_on_cluster / sb->s_blocksize;
-
-	// The entry part block no on device.
-	const unsigned entry_part_block_no_on_device =
-		(sbi->data_cluster_no + entry_logic_cluster_no) *
-			sbi->blocks_per_cluster +
-		entry_part_block_no_on_logic_cluster;
-
-	// The entry part offset on block. In bytes.
-	const unsigned entry_part_offset_on_block =
-		offset_on_cluster % sb->s_blocksize;
-
-	const struct dir_entry_part_offsets result = {
-		.block_on_device = entry_part_block_no_on_device,
-		.offset_on_block = entry_part_offset_on_block
-	};
-
-	return result;
-}
-
-struct dir_entry_offsets calc_dir_entry_offsets(struct inode *dir,
-						unsigned entry_index)
-{
-	struct super_block *sb = dir->i_sb;
-	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-
-	sbi->name_entries_offset = 0;
-	sbi->attributes_entries_offset =
-		sbi->entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
-	sbi->size_entries_offset =
-		sbi->attributes_entries_offset +
-		sbi->entries_per_cluster *
-			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
-	sbi->first_cluster_entries_offset =
-		sbi->size_entries_offset +
-		sbi->entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
-
-	const struct dir_entry_offsets result = {
-		.entry_index = entry_index,
-
-		.name = calc_dir_entry_part_offsets(
-			dir, entry_index, sbi->name_entries_offset,
-			sizeof(DDFS_DIR_ENTRY_NAME_TYPE) *
-				DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE),
-
-		.attributes = calc_dir_entry_part_offsets(
-			dir, entry_index, sbi->attributes_entries_offset,
-			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE)),
-
-		.size = calc_dir_entry_part_offsets(
-			dir, entry_index, sbi->size_entries_offset,
-			sizeof(DDFS_DIR_ENTRY_SIZE_TYPE)),
-
-		.first_cluster = calc_dir_entry_part_offsets(
-			dir, entry_index, sbi->first_cluster_entries_offset,
-			sizeof(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE))
-	};
-
-	return result;
 }
 
 struct dir_entry_ptrs {
@@ -267,9 +199,11 @@ void dump_dir_entry_ptrs(const struct dir_entry_ptrs *ptrs)
 static inline struct dir_entry_ptrs
 access_dir_entries(struct inode *dir, unsigned entry_index, unsigned part_flags)
 {
-	const struct dir_entry_offsets offsets =
-		calc_dir_entry_offsets(dir, entry_index);
 	struct super_block *sb = dir->i_sb;
+	const struct ddfs_dir_entry_calc_params calc_params =
+		ddfs_make_dir_entry_calc_params(sb, dir);
+	const struct dir_entry_offsets offsets =
+		ddfs_calc_dir_entry_offsets(&calc_params, entry_index);
 	struct dir_entry_ptrs result;
 	unsigned char *ptr;
 
