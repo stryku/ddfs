@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source test_common.sh
+source ../test_common.sh
 
 test_log "Test teardown start"
 
