@@ -13,25 +13,7 @@
 #include <linux/iversion.h>
 #include <linux/writeback.h>
 
-#define DDFS_SUPER_MAGIC 0xddf5
-#define DDFS_CLUSTER_UNUSED 0
-#define DDFS_CLUSTER_NOT_ASSIGNED 0xfffffffe
-#define DDFS_CLUSTER_EOF 0xffffffff
-
-#define DDFS_PART_NAME 1
-#define DDFS_PART_ATTRIBUTES 2
-#define DDFS_PART_SIZE 4
-#define DDFS_PART_FIRST_CLUSTER 8
-#define DDFS_PART_ALL                                                          \
-	(DDFS_PART_NAME | DDFS_PART_ATTRIBUTES | DDFS_PART_SIZE |              \
-	 DDFS_PART_FIRST_CLUSTER)
-
-#define DDFS_ROOT_INO 0
-
-#define DDFS_FILE_ATTR 1
-#define DDFS_DIR_ATTR 2
-
-#define DDFS_DEFAULT_MODE ((umode_t)(S_IRUGO | S_IWUGO | S_IXUGO))
+#include "dir_entry.h"
 
 #define dd_print(...)                                                          \
 	do {                                                                   \
@@ -82,20 +64,6 @@ inline void dump_ddfs_inode_info(struct ddfs_inode_info *info)
 	dd_print("\t\tinfo->i_pos: %llu", info->i_pos);
 }
 
-#define DDFS_DIR_ENTRY_NAME_TYPE __u8
-#define DDFS_DIR_ENTRY_ATTRIBUTES_TYPE __u8
-#define DDFS_DIR_ENTRY_SIZE_TYPE __u64
-#define DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE __u32
-
-struct ddfs_dir_entry {
-	unsigned entry_index;
-#define DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE 4
-	DDFS_DIR_ENTRY_NAME_TYPE name[DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE];
-	DDFS_DIR_ENTRY_ATTRIBUTES_TYPE attributes;
-	DDFS_DIR_ENTRY_SIZE_TYPE size;
-	DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE first_cluster;
-};
-
 static inline void dump_ddfs_dir_entry(const struct ddfs_dir_entry *entry)
 {
 	dd_print("dump_ddfs_dir_entry: %p", entry);
@@ -145,26 +113,6 @@ static inline struct ddfs_sb_info *DDFS_SB(struct super_block *sb)
 {
 	return sb->s_fs_info;
 }
-
-struct dir_entry_part_offsets {
-	unsigned block_on_device;
-	unsigned offset_on_block;
-};
-
-struct dir_entry_offsets {
-	/*
-	entry index
-	block on device
-	offset on block
-	*/
-
-	unsigned entry_index;
-
-	struct dir_entry_part_offsets name;
-	struct dir_entry_part_offsets attributes;
-	struct dir_entry_part_offsets size;
-	struct dir_entry_part_offsets first_cluster;
-};
 
 void dump_dir_entry_offsets(struct dir_entry_offsets *offsets)
 {
@@ -239,6 +187,17 @@ struct dir_entry_offsets calc_dir_entry_offsets(struct inode *dir,
 {
 	struct super_block *sb = dir->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
+
+	sbi->name_entries_offset = 0;
+	sbi->attributes_entries_offset =
+		sbi->entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
+	sbi->size_entries_offset =
+		sbi->attributes_entries_offset +
+		sbi->entries_per_cluster *
+			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
+	sbi->first_cluster_entries_offset =
+		sbi->size_entries_offset +
+		sbi->entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
 
 	const struct dir_entry_offsets result = {
 		.entry_index = entry_index,

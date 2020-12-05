@@ -1,4 +1,6 @@
-CXXFLAGS += -I../3rdparty
+CXXFLAGS += \
+	-I../3rdparty \
+	-I../../module
 
 all: $(patsubst %.cpp, %.out, $(wildcard *.cpp)) 
 %.out: %.cpp
