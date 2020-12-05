@@ -7,8 +7,7 @@
 
 TEST_CASE("DDFS.FileCreation")
 {
-	FILE *fp = std::fopen(make_path("/aaaaaaaaaaaaaaaaaaaaaaaaaaa").c_str(),
-			      "w");
+	FILE *fp = std::fopen(make_path("/aaa").c_str(), "w");
 	REQUIRE(fp != nullptr);
 
 	REQUIRE(std::fclose(fp) == 0);
