@@ -2,7 +2,7 @@
 #include <iostream>
 
 #define DOCTEST_CONFIG_IMPLEMENT
-#include "3rdparty/doctest.h"
+#include "doctest.h"
 
 #include "common.hpp"
 

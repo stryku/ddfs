@@ -12,7 +12,7 @@ test:
 	make module_name=${random_module_name} -C test
 
 runalltests: test .FORCE
-	-cd test && ./run_all_tests.sh ${random_module_name}
+	-cd test/e2e && ./run_all_tests.sh ${random_module_name}
 
 clean:
 	make -C module clean
