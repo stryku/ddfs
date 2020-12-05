@@ -200,13 +200,37 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 	std::unordered_map<unsigned, ddfs_block> map;
 	map[0] = { .bh = (buffer_head *)100, .data = (char *)1000 };
 
-	const auto result = ddfs_access_dir_entries(
-		block_provider_fun, &map, &calc_params, 0, DDFS_PART_NAME);
+	// Name
+	{
+		const auto result = ddfs_access_dir_entries(block_provider_fun,
+							    &map, &calc_params,
+							    0, DDFS_PART_NAME);
 
-	REQUIRE(result.name.bh == (buffer_head *)100);
-	REQUIRE(result.name.ptr == (DDFS_DIR_ENTRY_NAME_TYPE *)1000);
+		REQUIRE(result.name.bh == (buffer_head *)100);
+		REQUIRE(result.name.ptr == (DDFS_DIR_ENTRY_NAME_TYPE *)1000);
 
-	REQUIRE(result.attributes.bh == nullptr);
-	REQUIRE(result.size.bh == nullptr);
-	REQUIRE(result.first_cluster.bh == nullptr);
+		REQUIRE(result.attributes.bh == nullptr);
+		REQUIRE(result.size.bh == nullptr);
+		REQUIRE(result.first_cluster.bh == nullptr);
+	}
+
+	// Attributes
+	{
+		const auto result =
+			ddfs_access_dir_entries(block_provider_fun, &map,
+						&calc_params, 0,
+						DDFS_PART_ATTRIBUTES);
+
+		REQUIRE(result.attributes.bh == (buffer_head *)100);
+
+		const auto expected_offset = calc_params.entries_per_cluster *
+					     DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
+		REQUIRE(result.attributes.ptr ==
+			(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE *)(1000 +
+							   expected_offset));
+
+		REQUIRE(result.name.bh == nullptr);
+		REQUIRE(result.size.bh == nullptr);
+		REQUIRE(result.first_cluster.bh == nullptr);
+	}
 }
