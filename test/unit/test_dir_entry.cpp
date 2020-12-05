@@ -192,13 +192,14 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 {
 	const auto calc_params =
 		ddfs_dir_entry_calc_params{ .entries_per_cluster = 30,
-					    .blocks_per_cluster = 1,
+					    .blocks_per_cluster = 2,
 					    .data_cluster_no = 0,
-					    .block_size = 512,
+					    .block_size = 256,
 					    .dir_logical_start = 0 };
 
 	std::unordered_map<unsigned, ddfs_block> map;
 	map[0] = { .bh = (buffer_head *)100, .data = (char *)1000 };
+	map[1] = { .bh = (buffer_head *)200, .data = (char *)2000 };
 
 	const auto expected_name_offset = 0;
 	const auto expected_attributes_offset =
@@ -209,9 +210,14 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 		expected_attributes_offset +
 		calc_params.entries_per_cluster *
 			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
+
+	// It's on the second cluster, not the first one.
+	// That's why wee need to substract the block_size (256)
 	const auto expected_first_cluster_offset =
-		expected_size_offset + calc_params.entries_per_cluster *
-					       sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+		expected_size_offset +
+		calc_params.entries_per_cluster *
+			sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) -
+		calc_params.block_size;
 
 	// Name
 	{
@@ -269,10 +275,10 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 						&calc_params, 0,
 						DDFS_PART_FIRST_CLUSTER);
 
-		REQUIRE(result.first_cluster.bh == (buffer_head *)100);
+		REQUIRE(result.first_cluster.bh == (buffer_head *)200);
 		REQUIRE(result.first_cluster.ptr ==
 			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE
-				 *)(1000 + expected_first_cluster_offset));
+				 *)(2000 + expected_first_cluster_offset));
 
 		REQUIRE(result.name.bh == nullptr);
 		REQUIRE(result.attributes.bh == nullptr);
@@ -301,9 +307,9 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 			(DDFS_DIR_ENTRY_SIZE_TYPE *)(1000 +
 						     expected_size_offset));
 
-		REQUIRE(result.first_cluster.bh == (buffer_head *)100);
+		REQUIRE(result.first_cluster.bh == (buffer_head *)200);
 		REQUIRE(result.first_cluster.ptr ==
 			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE
-				 *)(1000 + expected_first_cluster_offset));
+				 *)(2000 + expected_first_cluster_offset));
 	}
 }
