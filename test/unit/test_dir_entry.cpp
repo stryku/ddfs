@@ -5,6 +5,8 @@
 
 #include <dir_entry.h>
 
+#include <unordered_map>
+
 TEST_CASE(
 	"DDFS.DirEntry.calc_dir_entry_offsets.first entry, first cluster, first block")
 {
@@ -172,4 +174,39 @@ TEST_CASE(
 		   cluster_first_block_on_device + 1);
 	REQUIRE_EQ(result.first_cluster.offset_on_block,
 		   expected_first_cluster_offset);
+}
+
+static ddfs_block block_provider_fun(void *data, unsigned block_no)
+{
+	const auto *map =
+		reinterpret_cast<std::unordered_map<unsigned, ddfs_block> *>(
+			data);
+
+	const auto found = map->find(block_no);
+	REQUIRE(found != map->cend());
+
+	return found->second;
+}
+
+TEST_CASE("DDFS.ddfs_access_dir_entries.name")
+{
+	const auto calc_params =
+		ddfs_dir_entry_calc_params{ .entries_per_cluster = 30,
+					    .blocks_per_cluster = 1,
+					    .data_cluster_no = 0,
+					    .block_size = 512,
+					    .dir_logical_start = 0 };
+
+	std::unordered_map<unsigned, ddfs_block> map;
+	map[0] = { .bh = (buffer_head *)100, .data = (char *)1000 };
+
+	const auto result = ddfs_access_dir_entries(
+		block_provider_fun, &map, &calc_params, 0, DDFS_PART_NAME);
+
+	REQUIRE(result.name.bh == (buffer_head *)100);
+	REQUIRE(result.name.ptr == (DDFS_DIR_ENTRY_NAME_TYPE *)1000);
+
+	REQUIRE(result.attributes.bh == nullptr);
+	REQUIRE(result.size.bh == nullptr);
+	REQUIRE(result.first_cluster.bh == nullptr);
 }
