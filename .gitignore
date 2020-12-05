@@ -7,6 +7,12 @@
 # NOTE! Please use 'git ls-files -i --exclude-standard'
 # command after changing this file, to see if there are
 # any tracked files which get ignored after the change.
+
+#
+# ddfs rules
+#
+timeline.md
+
 #
 # Normal rules (sorted alphabetically)
 #
