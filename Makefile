@@ -8,7 +8,7 @@ module:
 	make -C module
 
 test:
-	make module_name=${random_module_name} module 
+	make module_name=${random_module_name} module
 	make module_name=${random_module_name} -C test
 
 runalltests: test .FORCE
