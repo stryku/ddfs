@@ -1,6 +1,7 @@
 CXXFLAGS += \
 	-I../3rdparty \
-	-I../../module
+	-I../../module \
+	-DDDFS_BUILDING_TESTS
 
 all: $(patsubst %.cpp, %.out, $(wildcard *.cpp)) 
 %.out: %.cpp

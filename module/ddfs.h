@@ -15,17 +15,6 @@
 
 #include "dir_entry.h"
 
-#define dd_print(...)                                                          \
-	do {                                                                   \
-		printk(KERN_INFO "-------------------[DDFS]: " __VA_ARGS__);   \
-	} while (0);
-
-#define dd_error(...)                                                          \
-	do {                                                                   \
-		printk(KERN_ERR                                                \
-		       "-------------------[DDFS ERR]: " __VA_ARGS__);         \
-	} while (0);
-
 /*
  * DDFS inode data in memory
  */
@@ -154,30 +143,6 @@ void dump_dir_entry_offsets(struct dir_entry_offsets *offsets)
 	dd_print("\t\toffsets->first_cluster.offset_on_block: %u",
 		 offsets->first_cluster.offset_on_block);
 }
-
-struct dir_entry_ptrs {
-	long error;
-
-	struct {
-		DDFS_DIR_ENTRY_NAME_TYPE *ptr;
-		struct buffer_head *bh;
-	} name;
-
-	struct {
-		DDFS_DIR_ENTRY_ATTRIBUTES_TYPE *ptr;
-		struct buffer_head *bh;
-	} attributes;
-
-	struct {
-		DDFS_DIR_ENTRY_SIZE_TYPE *ptr;
-		struct buffer_head *bh;
-	} size;
-
-	struct {
-		DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *ptr;
-		struct buffer_head *bh;
-	} first_cluster;
-};
 
 void dump_dir_entry_ptrs(const struct dir_entry_ptrs *ptrs)
 {
