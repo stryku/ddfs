@@ -233,4 +233,24 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 		REQUIRE(result.size.bh == nullptr);
 		REQUIRE(result.first_cluster.bh == nullptr);
 	}
+
+	// Size
+	{
+		const auto result = ddfs_access_dir_entries(block_provider_fun,
+							    &map, &calc_params,
+							    0, DDFS_PART_SIZE);
+
+		REQUIRE(result.size.bh == (buffer_head *)100);
+
+		const auto expected_offset =
+			calc_params.entries_per_cluster *
+			(DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
+			 sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE));
+		REQUIRE(result.size.ptr ==
+			(DDFS_DIR_ENTRY_SIZE_TYPE *)(1000 + expected_offset));
+
+		REQUIRE(result.name.bh == nullptr);
+		REQUIRE(result.attributes.bh == nullptr);
+		REQUIRE(result.first_cluster.bh == nullptr);
+	}
 }
