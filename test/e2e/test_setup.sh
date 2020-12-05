@@ -1,13 +1,13 @@
 #!/bin/bash
 
-source test_common.sh
+source ../test_common.sh
 
 test_log "Test setup start"
 
 MODULE_NAME=$1
 DDFS_DIR=$2
 DDFS_IMG=$3
-MODULE_PATH=$(readlink -f ../module/$MODULE_NAME.ko)
+MODULE_PATH=$(readlink -f ../../module/$MODULE_NAME.ko)
 
 test_log "Test setup module path: $MODULE_PATH, DDFS_DIR: ${DDFS_DIR}, DDFS_IMG: ${DDFS_IMG}"
 

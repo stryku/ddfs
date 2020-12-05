@@ -1,6 +1,6 @@
 #!/bin/bash
 
-source test_common.sh
+source ../test_common.sh
 
 MODULE_NAME=$1
 
@@ -55,4 +55,5 @@ then
     test_log "ALL TESTS PASSED"
 else
     test_log "SOME TESTS FAILED"
+    exit 1
 fi
