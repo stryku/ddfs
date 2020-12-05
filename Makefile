@@ -7,11 +7,14 @@ all: module
 module:
 	make -C module
 
+unittest:
+	make -C test/unit
+
 test:
 	make module_name=${random_module_name} module
 	make module_name=${random_module_name} -C test
 
-rununittests: test .FORCE
+rununittests: unittest .FORCE
 	-set -e
 	-cd test/unit && ./run_all_tests.sh
 
