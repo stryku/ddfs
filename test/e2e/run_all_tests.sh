@@ -46,8 +46,8 @@ do
         FAILED_TESTS_COUNT=$((${FAILED_TESTS_COUNT}+1))
     fi
 
-    # rm -r ${DDFS_DIR}
-    # rm ${DDFS_IMG}
+    rm -r ${DDFS_DIR}
+    rm ${DDFS_IMG}
 done
 
 if [[ ${FAILED_TESTS_COUNT} -eq 0 ]]
