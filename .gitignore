@@ -9,11 +9,6 @@
 # any tracked files which get ignored after the change.
 
 #
-# ddfs rules
-#
-timeline.md
-
-#
 # Normal rules (sorted alphabetically)
 #
 .*
@@ -161,3 +156,10 @@ x509.genkey
 
 # Documentation toolchain
 sphinx_*/
+
+
+#
+# ddfs rules
+#
+timeline.md
+!.github/
