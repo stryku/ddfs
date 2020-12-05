@@ -26,4 +26,28 @@
 #define DDFS_DIR_ENTRY_SIZE_TYPE __u64
 #define DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE __u32
 
+struct buffer_head;
+struct ddfs_block {
+	struct buffer_head *bh;
+	char *data;
+};
+
+typedef struct ddfs_block (*block_provider)(void *, unsigned);
+
+#ifndef DDFS_BUILDING_TESTS
+#define dd_print(...)                                                          \
+	do {                                                                   \
+		printk(KERN_INFO "-------------------[DDFS]: " __VA_ARGS__);   \
+	} while (0);
+
+#define dd_error(...)                                                          \
+	do {                                                                   \
+		printk(KERN_ERR                                                \
+		       "-------------------[DDFS ERR]: " __VA_ARGS__);         \
+	} while (0);
+#else
+#define dd_print(...)
+#define dd_error(...)
+#endif
+
 #endif
