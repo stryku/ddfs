@@ -1,5 +1,23 @@
 #include "ddfs.h"
 
+static inline struct ddfs_block
+default_block_reading_provider(void *data, unsigned block_no)
+{
+	struct buffer_head *bh;
+	struct super_block *sb = (struct super_block *)data;
+	struct ddfs_block result;
+
+	bh = sb_bread(sb, block_no);
+	if (!bh) {
+		result.bh = NULL;
+	} else {
+		result.bh = bh;
+		result.data = bh->b_data;
+	}
+
+	return result;
+}
+
 static inline void lock_table(struct ddfs_sb_info *sbi)
 {
 	mutex_lock(&sbi->table_lock);
@@ -91,9 +109,35 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 	// Todo check whether entry index is inside cluster
 
 	{
+		/*
+		block_provider block_providing_fun,
+			void *block_providing_data,
+			const struct ddfs_dir_entry_calc_params *calc_params,
+			unsigned entry_index, unsigned part_flags
+		*/
 		const unsigned part_flags = DDFS_PART_ALL;
-		struct dir_entry_ptrs entry_ptrs = access_dir_entries(
-			inode, dd_inode->dentry_index, part_flags);
+		/*
+	unsigned entries_per_cluster;
+	unsigned blocks_per_cluster;
+	unsigned data_cluster_no;
+	unsigned block_size;
+	unsigned dir_logical_start
+*/
+
+		const struct ddfs_dir_entry_calc_params calc_params = {
+			.entries_per_cluster = sbi->entries_per_cluster,
+			.blocks_per_cluster = sbi->blocks_per_cluster,
+			.data_cluster_no = sbi->data_cluster_no,
+			.block_size = sbi->block_size,
+			.dir_logical_start = dd_inode->i_logstart
+		};
+
+		struct dir_entry_ptrs entry_ptrs = ddfs_access_dir_entries(
+			default_block_reading_provider, sb, &calc_params,
+			dd_inode->dentry_index, part_flags);
+
+		// struct dir_entry_ptrs entry_ptrs = ddfs_access_dir_entries(
+		// 	inode, dd_inode->dentry_index, part_flags);
 
 		*entry_ptrs.first_cluster.ptr = dd_inode->i_logstart;
 		*entry_ptrs.size.ptr = inode->i_size;
@@ -320,12 +364,26 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 			       struct ddfs_dir_entry *de)
 {
 	struct ddfs_inode_info *dd_idir = DDFS_I(dir);
+	struct super_block *sb = dir->i_sb;
+	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	// Todo: handle no space on cluster
 
 	const unsigned new_entry_index = dd_idir->number_of_entries;
 
-	const struct dir_entry_ptrs parts_ptrs = access_dir_entries(
-		dir, new_entry_index, DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	const struct ddfs_dir_entry_calc_params calc_params = {
+		.entries_per_cluster = sbi->entries_per_cluster,
+		.blocks_per_cluster = sbi->blocks_per_cluster,
+		.data_cluster_no = sbi->data_cluster_no,
+		.block_size = sbi->block_size,
+		.dir_logical_start = dd_idir->i_logstart
+	};
+
+	const struct dir_entry_ptrs parts_ptrs = ddfs_access_dir_entries(
+		default_block_reading_provider, sb, &calc_params,
+		new_entry_index, DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+
+	// const struct dir_entry_ptrs parts_ptrs = access_dir_entries(
+	// 	dir, new_entry_index, DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
 	int i;
 
 	dd_print("ddfs_add_dir_entry, dir: %p, name: %s, de: %p", dir,
@@ -748,6 +806,8 @@ static int ddfs_find(struct inode *dir, const char *name,
 {
 	int entry_index;
 	struct ddfs_inode_info *dd_dir = DDFS_I(dir);
+	struct super_block *sb = dir->i_sb;
+	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 
 	dd_print("ddfs_find, dir: %p, name: %s, dest_de: %p", dir, name,
 		 dest_de);
@@ -757,8 +817,23 @@ static int ddfs_find(struct inode *dir, const char *name,
 	for (entry_index = 0; entry_index < dd_dir->number_of_entries;
 	     ++entry_index) {
 		int i;
+
+		const struct ddfs_dir_entry_calc_params calc_params = {
+			.entries_per_cluster = sbi->entries_per_cluster,
+			.blocks_per_cluster = sbi->blocks_per_cluster,
+			.data_cluster_no = sbi->data_cluster_no,
+			.block_size = sbi->block_size,
+			.dir_logical_start = dd_dir->i_logstart
+		};
+
 		const struct dir_entry_ptrs entry_ptrs =
-			access_dir_entries(dir, entry_index, DDFS_PART_ALL);
+			ddfs_access_dir_entries(default_block_reading_provider,
+						sb, &calc_params, entry_index,
+						DDFS_PART_ALL);
+
+		// const struct dir_entry_ptrs entry_ptrs =
+		// 	ddfs_access_dir_entries(dir, entry_index,
+		// 				DDFS_PART_ALL);
 
 		dd_print("entry_index: %d", entry_index);
 		dump_dir_entry_ptrs(&entry_ptrs);

@@ -161,137 +161,137 @@ void dump_dir_entry_ptrs(const struct dir_entry_ptrs *ptrs)
 	dd_print("\t\tptrs->first_cluster.bh: %px", ptrs->first_cluster.bh);
 }
 
-static inline struct dir_entry_ptrs
-access_dir_entries(struct inode *dir, unsigned entry_index, unsigned part_flags)
-{
-	struct super_block *sb = dir->i_sb;
-	const struct ddfs_dir_entry_calc_params calc_params =
-		ddfs_make_dir_entry_calc_params(sb, dir);
-	const struct dir_entry_offsets offsets =
-		ddfs_calc_dir_entry_offsets(&calc_params, entry_index);
-	struct dir_entry_ptrs result;
-	unsigned char *ptr;
+// static inline struct dir_entry_ptrs
+// access_dir_entries(struct inode *dir, unsigned entry_index, unsigned part_flags)
+// {
+// 	struct super_block *sb = dir->i_sb;
+// 	const struct ddfs_dir_entry_calc_params calc_params =
+// 		ddfs_make_dir_entry_calc_params(sb, dir);
+// 	const struct dir_entry_offsets offsets =
+// 		ddfs_calc_dir_entry_offsets(&calc_params, entry_index);
+// 	struct dir_entry_ptrs result;
+// 	unsigned char *ptr;
 
-	struct buffer_head *hydra[4] = { NULL };
-	unsigned block_no[4] = { 0 };
-	unsigned counter = 0;
+// 	struct buffer_head *hydra[4] = { NULL };
+// 	unsigned block_no[4] = { 0 };
+// 	unsigned counter = 0;
 
-	struct part_data {
-		unsigned flag;
-		const struct dir_entry_part_offsets *offsets;
-		struct buffer_head *dest_bh;
-	};
+// 	struct part_data {
+// 		unsigned flag;
+// 		const struct dir_entry_part_offsets *offsets;
+// 		struct buffer_head *dest_bh;
+// 	};
 
-	struct part_data parts_data[] = { { .flag = DDFS_PART_NAME,
-					    .offsets = &offsets.name,
-					    .dest_bh = ((void *)0) },
-					  { .flag = DDFS_PART_ATTRIBUTES,
-					    .offsets = &offsets.attributes,
-					    .dest_bh = ((void *)0) },
-					  { .flag = DDFS_PART_SIZE,
-					    .offsets = &offsets.size,
-					    .dest_bh = ((void *)0) },
-					  { .flag = DDFS_PART_FIRST_CLUSTER,
-					    .offsets = &offsets.first_cluster,
-					    .dest_bh = ((void *)0) } };
+// 	struct part_data parts_data[] = { { .flag = DDFS_PART_NAME,
+// 					    .offsets = &offsets.name,
+// 					    .dest_bh = ((void *)0) },
+// 					  { .flag = DDFS_PART_ATTRIBUTES,
+// 					    .offsets = &offsets.attributes,
+// 					    .dest_bh = ((void *)0) },
+// 					  { .flag = DDFS_PART_SIZE,
+// 					    .offsets = &offsets.size,
+// 					    .dest_bh = ((void *)0) },
+// 					  { .flag = DDFS_PART_FIRST_CLUSTER,
+// 					    .offsets = &offsets.first_cluster,
+// 					    .dest_bh = ((void *)0) } };
 
-	unsigned number_of_parts = sizeof(parts_data) / sizeof(parts_data[0]);
-	int i;
+// 	unsigned number_of_parts = sizeof(parts_data) / sizeof(parts_data[0]);
+// 	int i;
 
-	dd_print("access_dir_entries");
+// 	dd_print("access_dir_entries");
 
-	for (i = 0; i < number_of_parts; ++i) {
-		int used_cached = 0;
-		int j;
-		struct buffer_head *bh;
+// 	for (i = 0; i < number_of_parts; ++i) {
+// 		int used_cached = 0;
+// 		int j;
+// 		struct buffer_head *bh;
 
-		if (!(part_flags & parts_data[i].flag)) {
-			dd_print("omit flag[%d]: %u", i, parts_data[i].flag);
-			parts_data[i].dest_bh = ((void *)0);
-			dd_print("parts_data[%d].dest_bh = %p", i,
-				 parts_data[i].dest_bh);
-			continue;
-		}
+// 		if (!(part_flags & parts_data[i].flag)) {
+// 			dd_print("omit flag[%d]: %u", i, parts_data[i].flag);
+// 			parts_data[i].dest_bh = ((void *)0);
+// 			dd_print("parts_data[%d].dest_bh = %p", i,
+// 				 parts_data[i].dest_bh);
+// 			continue;
+// 		}
 
-		dd_print("calculate flag[%d]: %u", i, parts_data[i].flag);
-		for (j = 0; j < counter; ++j) {
-			// char *ptr;
+// 		dd_print("calculate flag[%d]: %u", i, parts_data[i].flag);
+// 		for (j = 0; j < counter; ++j) {
+// 			// char *ptr;
 
-			if (block_no[j] !=
-			    parts_data[i].offsets->block_on_device) {
-				continue;
-			}
+// 			if (block_no[j] !=
+// 			    parts_data[i].offsets->block_on_device) {
+// 				continue;
+// 			}
 
-			// The same block no as cached one. Reuse it.
+// 			// The same block no as cached one. Reuse it.
 
-			used_cached = 1;
-			parts_data[i].dest_bh = hydra[j];
-			// ptr = (char *)(hydra[j]->b_data) +
-			//       data->offsets->offset_on_block;
-			// *data->dest_ptr = ptr;
-			break;
-		}
+// 			used_cached = 1;
+// 			parts_data[i].dest_bh = hydra[j];
+// 			// ptr = (char *)(hydra[j]->b_data) +
+// 			//       data->offsets->offset_on_block;
+// 			// *data->dest_ptr = ptr;
+// 			break;
+// 		}
 
-		if (used_cached) {
-			continue;
-		}
+// 		if (used_cached) {
+// 			continue;
+// 		}
 
-		// No cached bh. Need to read
-		bh = sb_bread(sb, parts_data[i].offsets->block_on_device);
-		if (!bh) {
-			parts_data[i].dest_bh = NULL;
-			continue;
-		}
+// 		// No cached bh. Need to read
+// 		bh = sb_bread(sb, parts_data[i].offsets->block_on_device);
+// 		if (!bh) {
+// 			parts_data[i].dest_bh = NULL;
+// 			continue;
+// 		}
 
-		// char *ptr =
-		// 	(char *)(bh->b_data) + data->offsets->offset_on_block;
-		// *data->dest_ptr = ptr;
-		parts_data[i].dest_bh = bh;
+// 		// char *ptr =
+// 		// 	(char *)(bh->b_data) + data->offsets->offset_on_block;
+// 		// *data->dest_ptr = ptr;
+// 		parts_data[i].dest_bh = bh;
 
-		hydra[counter] = bh;
-		block_no[counter] = parts_data[i].offsets->block_on_device;
-		++counter;
-	}
+// 		hydra[counter] = bh;
+// 		block_no[counter] = parts_data[i].offsets->block_on_device;
+// 		++counter;
+// 	}
 
-	result.error = 0;
+// 	result.error = 0;
 
-	result.name.bh = parts_data[0].dest_bh;
-	if (result.name.bh) {
-		result.name.bh = parts_data[0].dest_bh;
-		ptr = result.name.bh->b_data + offsets.name.offset_on_block;
-		result.name.ptr = (DDFS_DIR_ENTRY_NAME_TYPE *)ptr;
-	}
+// 	result.name.bh = parts_data[0].dest_bh;
+// 	if (result.name.bh) {
+// 		result.name.bh = parts_data[0].dest_bh;
+// 		ptr = result.name.bh->b_data + offsets.name.offset_on_block;
+// 		result.name.ptr = (DDFS_DIR_ENTRY_NAME_TYPE *)ptr;
+// 	}
 
-	result.attributes.bh = parts_data[1].dest_bh;
-	if (result.attributes.bh) {
-		result.attributes.bh = parts_data[1].dest_bh;
-		ptr = result.attributes.bh->b_data +
-		      offsets.attributes.offset_on_block;
-		result.attributes.ptr = (DDFS_DIR_ENTRY_ATTRIBUTES_TYPE *)ptr;
-	}
+// 	result.attributes.bh = parts_data[1].dest_bh;
+// 	if (result.attributes.bh) {
+// 		result.attributes.bh = parts_data[1].dest_bh;
+// 		ptr = result.attributes.bh->b_data +
+// 		      offsets.attributes.offset_on_block;
+// 		result.attributes.ptr = (DDFS_DIR_ENTRY_ATTRIBUTES_TYPE *)ptr;
+// 	}
 
-	result.size.bh = parts_data[2].dest_bh;
-	if (result.size.bh) {
-		ptr = result.size.bh->b_data + offsets.size.offset_on_block;
-		result.size.ptr = (DDFS_DIR_ENTRY_SIZE_TYPE *)ptr;
-	}
+// 	result.size.bh = parts_data[2].dest_bh;
+// 	if (result.size.bh) {
+// 		ptr = result.size.bh->b_data + offsets.size.offset_on_block;
+// 		result.size.ptr = (DDFS_DIR_ENTRY_SIZE_TYPE *)ptr;
+// 	}
 
-	result.first_cluster.bh = parts_data[3].dest_bh;
-	if (result.first_cluster.bh) {
-		ptr = result.first_cluster.bh->b_data +
-		      offsets.first_cluster.offset_on_block;
-		result.first_cluster.ptr =
-			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *)ptr;
-	}
+// 	result.first_cluster.bh = parts_data[3].dest_bh;
+// 	if (result.first_cluster.bh) {
+// 		ptr = result.first_cluster.bh->b_data +
+// 		      offsets.first_cluster.offset_on_block;
+// 		result.first_cluster.ptr =
+// 			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *)ptr;
+// 	}
 
-	dd_print("access_dir_entries: dir: %p, entry_index: %d, part_flags: %u",
-		 dir, entry_index, part_flags);
+// 	dd_print("access_dir_entries: dir: %p, entry_index: %d, part_flags: %u",
+// 		 dir, entry_index, part_flags);
 
-	dd_print("access_dir_entries dump 2");
-	dump_dir_entry_ptrs(&result);
+// 	dd_print("access_dir_entries dump 2");
+// 	dump_dir_entry_ptrs(&result);
 
-	return result;
-}
+// 	return result;
+// }
 
 static inline void release_dir_entries(const struct dir_entry_ptrs *ptrs,
 				       unsigned part_flags)
