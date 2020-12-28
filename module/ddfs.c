@@ -1,7 +1,7 @@
 #include "ddfs.h"
 
 static inline struct ddfs_block
-default_block_reading_provider(void *data, unsigned block_no)
+ddfs_default_block_reading_provider(void *data, unsigned block_no)
 {
 	struct buffer_head *bh;
 	struct super_block *sb = (struct super_block *)data;
@@ -105,24 +105,13 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 {
 	struct super_block *sb = inode->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	struct buffer_head *bh;
 	struct ddfs_inode_info *dd_inode = DDFS_I(inode);
-	unsigned block_on_device;
 
 	dd_print("__ddfs_write_inode: inode: %p, wait: %d", inode, wait);
 	dump_ddfs_inode_info(dd_inode);
 
 	dd_print("locking data");
 	lock_data(sbi);
-
-	block_on_device = sbi->data_cluster_no * sbi->blocks_per_cluster;
-	bh = sb_bread(sb, block_on_device);
-	if (!bh) {
-		dd_error("unable to read inode block for updating");
-		unlock_data(sbi);
-		dd_print("~__ddfs_write_inode error %d", -EIO);
-		return -EIO;
-	}
 
 	// Todo check whether entry index is inside cluster
 
@@ -133,7 +122,7 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 			ddfs_make_dir_entry_calc_params(inode);
 
 		struct dir_entry_ptrs entry_ptrs = ddfs_access_dir_entries(
-			default_block_reading_provider, sb, &calc_params,
+			ddfs_default_block_reading_provider, sb, &calc_params,
 			dd_inode->dentry_index, part_flags);
 
 		*entry_ptrs.first_cluster.ptr = dd_inode->i_logstart;
@@ -151,8 +140,6 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 		release_dir_entries(&entry_ptrs, part_flags);
 	}
 
-	dd_print("calling brelse");
-	brelse(bh);
 	dd_print("calling unlock_data");
 	unlock_data(sbi);
 
@@ -371,7 +358,7 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 		ddfs_make_dir_entry_calc_params(dir);
 
 	const struct dir_entry_ptrs parts_ptrs = ddfs_access_dir_entries(
-		default_block_reading_provider, sb, &calc_params,
+		ddfs_default_block_reading_provider, sb, &calc_params,
 		new_entry_index, DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
 
 	dd_print("ddfs_add_dir_entry, dir: %p, name: %s, de: %p", dir,
@@ -809,9 +796,9 @@ static int ddfs_find(struct inode *dir, const char *name,
 			ddfs_make_dir_entry_calc_params(dir);
 
 		const struct dir_entry_ptrs entry_ptrs =
-			ddfs_access_dir_entries(default_block_reading_provider,
-						sb, &calc_params, entry_index,
-						DDFS_PART_ALL);
+			ddfs_access_dir_entries(
+				ddfs_default_block_reading_provider, sb,
+				&calc_params, entry_index, DDFS_PART_ALL);
 
 		dd_print("entry_index: %d", entry_index);
 		dump_dir_entry_ptrs(&entry_ptrs);
