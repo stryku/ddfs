@@ -105,24 +105,13 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 {
 	struct super_block *sb = inode->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	struct buffer_head *bh;
 	struct ddfs_inode_info *dd_inode = DDFS_I(inode);
-	unsigned block_on_device;
 
 	dd_print("__ddfs_write_inode: inode: %p, wait: %d", inode, wait);
 	dump_ddfs_inode_info(dd_inode);
 
 	dd_print("locking data");
 	lock_data(sbi);
-
-	block_on_device = sbi->data_cluster_no * sbi->blocks_per_cluster;
-	bh = sb_bread(sb, block_on_device);
-	if (!bh) {
-		dd_error("unable to read inode block for updating");
-		unlock_data(sbi);
-		dd_print("~__ddfs_write_inode error %d", -EIO);
-		return -EIO;
-	}
 
 	// Todo check whether entry index is inside cluster
 
@@ -151,8 +140,6 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 		release_dir_entries(&entry_ptrs, part_flags);
 	}
 
-	dd_print("calling brelse");
-	brelse(bh);
 	dd_print("calling unlock_data");
 	unlock_data(sbi);
 
