@@ -1,4 +1,5 @@
 #include "ddfs.h"
+#include "table.h"
 
 static inline struct ddfs_block
 ddfs_default_block_reading_provider(void *data, unsigned block_no)
@@ -26,9 +27,9 @@ ddfs_make_dir_entry_calc_params(struct inode *dir)
 	const struct ddfs_sb_info *sbi = DDFS_SB(sb);
 
 	const struct ddfs_dir_entry_calc_params result = {
-		.entries_per_cluster = sbi->entries_per_cluster,
-		.blocks_per_cluster = sbi->blocks_per_cluster,
-		.data_cluster_no = sbi->data_cluster_no,
+		.entries_per_cluster = sbi->v.entries_per_cluster,
+		.blocks_per_cluster = sbi->v.blocks_per_cluster,
+		.data_cluster_no = sbi->v.data_cluster_no,
 		.block_size = sb->s_blocksize,
 		.dir_logical_start = dd_dir->i_logstart
 	};
@@ -97,8 +98,8 @@ static void ddfs_free_inode(struct inode *inode)
 static inline void ddfs_get_blknr_offset(struct ddfs_sb_info *sbi, loff_t i_pos,
 					 sector_t *blknr, int *offset)
 {
-	*blknr = i_pos / sbi->block_size;
-	*offset = i_pos % sbi->block_size;
+	*blknr = i_pos / sbi->v.block_size;
+	*offset = i_pos % sbi->v.block_size;
 }
 
 static int __ddfs_write_inode(struct inode *inode, int wait)
@@ -199,23 +200,24 @@ static int ddfs_free(struct inode *inode, int skip)
 		// Index of cluster entry in table.
 		const unsigned cluster_no = dd_inode->i_logstart;
 		// How many cluster indices fit in one cluster, in table.
-		const unsigned cluster_idx_per_cluster = sbi->cluster_size / 4u;
+		const unsigned cluster_idx_per_cluster =
+			sbi->v.cluster_size / 4u;
 		// Cluster of table on which `cluster_no` lays.
 		const unsigned table_cluster_no_containing_cluster_no =
 			cluster_no / cluster_idx_per_cluster;
 		// Index of block on the cluster, on which `cluster_no` lays.
 		const unsigned block_no_containing_cluster_no =
 			(cluster_no % cluster_idx_per_cluster) /
-			sbi->blocks_per_cluster;
+			sbi->v.blocks_per_cluster;
 		// Index of block on device, on which `cluster_no` lays.
 		// Calculated:
 		//    1 cluster for boot sector * blocks_per_cluster
 		//    + table_cluster_no_containing_cluster_no * blocks_per_cluster
 		//    +  block_no_containing_cluster_no
 		const unsigned device_block_no_containing_cluster_no =
-			sbi->blocks_per_cluster +
+			sbi->v.blocks_per_cluster +
 			table_cluster_no_containing_cluster_no *
-				sbi->blocks_per_cluster +
+				sbi->v.blocks_per_cluster +
 			block_no_containing_cluster_no;
 		// Cluster index on the block
 		const unsigned cluster_idx_on_block =
@@ -439,7 +441,7 @@ int ddfs_getattr(const struct path *path, struct kstat *stat, u32 request_mask,
 	dump_ddfs_inode_info(DDFS_I(inode));
 
 	generic_fillattr(inode, stat);
-	stat->blksize = DDFS_SB(inode->i_sb)->cluster_size;
+	stat->blksize = DDFS_SB(inode->i_sb)->v.cluster_size;
 
 	dd_print("stat->mode: %x", stat->mode);
 	dd_print("S_ISDIR(stat->mode): %d", S_ISDIR(stat->mode));
@@ -472,8 +474,8 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 	struct super_block *sb = inode->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	struct buffer_head *bh;
-	unsigned cluster_no = dd_inode->i_logstart + sbi->data_cluster_no;
-	unsigned block_on_device = cluster_no * sbi->blocks_per_cluster;
+	unsigned cluster_no = dd_inode->i_logstart + sbi->v.data_cluster_no;
+	unsigned block_on_device = cluster_no * sbi->v.blocks_per_cluster;
 	char *data_ptr;
 
 	dd_print("ddfs_read, file: %p, size: %lu, ppos: %llu", file, size,
@@ -504,29 +506,27 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
 {
 	struct super_block *sb = sbi->sb;
-	struct buffer_head *bh;
-	__u32 *clusters;
-	const unsigned table_block_no = sbi->table_offset / sbi->block_size;
+	struct ddfs_table table;
 
 	dd_print("ddfs_take_first_root_cluster_if_not_taken");
 
 	lock_table(sbi);
-	bh = sb_bread(sb, table_block_no);
-	if (!bh) {
-		dd_print("sb_bread failed");
+
+	table = ddfs_table_access(ddfs_default_block_reading_provider, sb,
+				  &sbi->v);
+	if (!table.clusters) {
+		dd_print("failed accessing table");
 		// Todo: handle
 	}
-	dd_print("sb_bread succeed");
+	dd_print("accessing table succeed");
 
-	clusters = (__u32 *)bh->b_data;
-
-	if (*clusters == DDFS_CLUSTER_UNUSED) {
+	if (table.clusters[0] == DDFS_CLUSTER_UNUSED) {
 		dd_print("Setting first root cluster to %d", DDFS_CLUSTER_EOF);
-		*clusters = DDFS_CLUSTER_EOF;
-		mark_buffer_dirty(bh);
+		table.clusters[0] = DDFS_CLUSTER_EOF;
+		mark_buffer_dirty(table.block.bh);
 	}
 
-	brelse(bh);
+	brelse(table.block.bh);
 	unlock_table(sbi);
 
 	dd_print("~ddfs_take_first_root_cluster_if_not_taken 0");
@@ -536,34 +536,30 @@ static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
 int ddfs_find_free_cluster(struct super_block *sb)
 {
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	struct buffer_head *bh;
-	__u32 *clusters;
+	struct ddfs_table table;
 	unsigned cluster_no = 0;
-	const unsigned table_block_no = sbi->table_offset / sbi->block_size;
 
 	dd_print("ddfs_find_free_cluster");
 
 	lock_table(sbi);
-	bh = sb_bread(sb, table_block_no);
-	if (!bh) {
-		dd_print("sb_bread failed");
+
+	table = ddfs_table_access(ddfs_default_block_reading_provider, sb,
+				  &sbi->v);
+	if (!table.clusters) {
+		dd_print("failed accessing table");
 		// Todo: handle
 	}
-	dd_print("sb_bread succeed");
+	dd_print("accessing table succeed");
 
-	clusters = (__u32 *)bh->b_data;
-
-	while (*clusters != DDFS_CLUSTER_UNUSED) {
-		++clusters;
+	while (table.clusters[cluster_no] != DDFS_CLUSTER_UNUSED) {
 		++cluster_no;
 	}
 
 	dd_print("found cluster %u", cluster_no);
-	*clusters = DDFS_CLUSTER_EOF;
+	table.clusters[cluster_no] = DDFS_CLUSTER_EOF;
 
-	mark_buffer_dirty(bh);
-	sync_dirty_buffer(bh); // Todo: is it needed?
-	brelse(bh);
+	mark_buffer_dirty(table.block.bh);
+	brelse(table.block.bh);
 	unlock_table(sbi);
 
 	dd_print("~ddfs_find_free_cluster %u", cluster_no);
@@ -600,8 +596,8 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 
 	dd_print("cluster_no to use: %d", cluster_no);
 
-	cluster_on_device = cluster_no + sbi->data_cluster_no;
-	block_on_device = cluster_on_device * sbi->blocks_per_cluster;
+	cluster_on_device = cluster_no + sbi->v.data_cluster_no;
+	block_on_device = cluster_on_device * sbi->v.blocks_per_cluster;
 
 	dd_print("cluster_on_device: %u", cluster_on_device);
 	dd_print("block_on_device: %u", block_on_device);
@@ -1044,15 +1040,15 @@ void log_boot_sector(struct ddfs_boot_sector *boot_sector)
 unsigned int calculate_data_offset(struct ddfs_sb_info *sbi)
 {
 	unsigned int first_data_cluster = 1; // 1 for super block
-	unsigned int table_end = sbi->table_offset + sbi->table_size;
+	unsigned int table_end = sbi->v.table_offset + sbi->v.table_size;
 
-	first_data_cluster += table_end / sbi->cluster_size;
+	first_data_cluster += table_end / sbi->v.cluster_size;
 
-	if (table_end % sbi->cluster_size != 0) {
+	if (table_end % sbi->v.cluster_size != 0) {
 		++first_data_cluster;
 	}
 
-	return first_data_cluster * sbi->cluster_size;
+	return first_data_cluster * sbi->v.cluster_size;
 }
 
 /* Convert ddfs attribute bits and a mask to the UNIX mode. */
@@ -1082,11 +1078,11 @@ static int ddfs_read_root(struct inode *inode)
 	inode->i_op = sbi->dir_ops;
 	inode->i_fop = &ddfs_dir_operations;
 
-	dd_inode->i_start = sbi->root_cluster;
+	dd_inode->i_start = sbi->v.root_cluster;
 
 	// Todo: handle root bigget than one cluster
-	inode->i_size = sbi->cluster_size;
-	inode->i_blocks = sbi->blocks_per_cluster;
+	inode->i_size = sbi->v.cluster_size;
+	inode->i_blocks = sbi->v.blocks_per_cluster;
 
 	dd_inode->i_logstart = 0;
 	dd_inode->mmu_private = inode->i_size;
@@ -1143,34 +1139,34 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	brelse(bh);
 	log_boot_sector(&boot_sector);
 
-	sbi->blocks_per_cluster = boot_sector.sectors_per_cluster;
+	sbi->v.blocks_per_cluster = boot_sector.sectors_per_cluster;
 
 	mutex_init(&sbi->s_lock);
 	sbi->sb = sb;
 	sbi->dir_ops = &ddfs_dir_inode_operations;
-	sbi->cluster_size = sb->s_blocksize * sbi->blocks_per_cluster;
-	sbi->number_of_table_entries = boot_sector.number_of_clusters;
-	sbi->table_offset = sbi->cluster_size;
-	sbi->table_size =
+	sbi->v.cluster_size = sb->s_blocksize * sbi->v.blocks_per_cluster;
+	sbi->v.number_of_table_entries = boot_sector.number_of_clusters;
+	sbi->v.table_offset = sbi->v.cluster_size;
+	sbi->v.table_size =
 		boot_sector.number_of_clusters * sizeof(struct ddfs_dir_entry);
-	sbi->data_offset = calculate_data_offset(sbi);
-	sbi->data_cluster_no = sbi->data_offset / sbi->cluster_size;
-	sbi->root_cluster = sbi->data_cluster_no;
-	sbi->block_size = sb->s_blocksize;
+	sbi->v.data_offset = calculate_data_offset(sbi);
+	sbi->v.data_cluster_no = sbi->v.data_offset / sbi->v.cluster_size;
+	sbi->v.root_cluster = sbi->v.data_cluster_no;
+	sbi->v.block_size = sb->s_blocksize;
 
-	sbi->entries_per_cluster =
-		sbi->cluster_size / sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+	sbi->v.entries_per_cluster =
+		sbi->v.cluster_size / sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
 
-	sbi->name_entries_offset = 0;
-	sbi->attributes_entries_offset =
-		sbi->entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
-	sbi->size_entries_offset =
-		sbi->attributes_entries_offset +
-		sbi->entries_per_cluster *
+	sbi->v.name_entries_offset = 0;
+	sbi->v.attributes_entries_offset =
+		sbi->v.entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
+	sbi->v.size_entries_offset =
+		sbi->v.attributes_entries_offset +
+		sbi->v.entries_per_cluster *
 			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
-	sbi->first_cluster_entries_offset =
-		sbi->size_entries_offset +
-		sbi->entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+	sbi->v.first_cluster_entries_offset =
+		sbi->v.size_entries_offset +
+		sbi->v.entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
 
 	dd_print("Making root inode");
 	root_inode = new_inode(sb);
