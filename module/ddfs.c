@@ -501,6 +501,38 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 	return size;
 }
 
+static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
+{
+	struct super_block *sb = sbi->sb;
+	struct buffer_head *bh;
+	__u32 *clusters;
+	const unsigned table_block_no = sbi->table_offset / sbi->block_size;
+
+	dd_print("ddfs_take_first_root_cluster_if_not_taken");
+
+	lock_table(sbi);
+	bh = sb_bread(sb, table_block_no);
+	if (!bh) {
+		dd_print("sb_bread failed");
+		// Todo: handle
+	}
+	dd_print("sb_bread succeed");
+
+	clusters = (__u32 *)bh->b_data;
+
+	if (*clusters == DDFS_CLUSTER_UNUSED) {
+		dd_print("Setting first root cluster to %d", DDFS_CLUSTER_EOF);
+		*clusters = DDFS_CLUSTER_EOF;
+		mark_buffer_dirty(bh);
+	}
+
+	brelse(bh);
+	unlock_table(sbi);
+
+	dd_print("~ddfs_take_first_root_cluster_if_not_taken 0");
+	return 0;
+}
+
 int ddfs_find_free_cluster(struct super_block *sb)
 {
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
@@ -1061,6 +1093,8 @@ static int ddfs_read_root(struct inode *inode)
 
 	dd_inode->i_attrs |= DDFS_DIR_ATTR;
 
+	ddfs_take_first_root_cluster_if_not_taken(sbi);
+
 	dd_print("set up root:");
 	dump_ddfs_inode_info(dd_inode);
 
@@ -1112,6 +1146,7 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	sbi->blocks_per_cluster = boot_sector.sectors_per_cluster;
 
 	mutex_init(&sbi->s_lock);
+	sbi->sb = sb;
 	sbi->dir_ops = &ddfs_dir_inode_operations;
 	sbi->cluster_size = sb->s_blocksize * sbi->blocks_per_cluster;
 	sbi->number_of_table_entries = boot_sector.number_of_clusters;
