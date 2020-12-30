@@ -472,7 +472,7 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 	struct super_block *sb = inode->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	struct buffer_head *bh;
-	unsigned cluster_no = dd_inode->i_logstart + 4; // sb, table, root + 1
+	unsigned cluster_no = dd_inode->i_logstart + sbi->data_cluster_no;
 	unsigned block_on_device = cluster_no * sbi->blocks_per_cluster;
 	char *data_ptr;
 
@@ -600,7 +600,7 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 
 	dd_print("cluster_no to use: %d", cluster_no);
 
-	cluster_on_device = cluster_no + sbi->data_cluster_no + 1u;
+	cluster_on_device = cluster_no + sbi->data_cluster_no;
 	block_on_device = cluster_on_device * sbi->blocks_per_cluster;
 
 	dd_print("cluster_on_device: %u", cluster_on_device);
@@ -1043,7 +1043,7 @@ void log_boot_sector(struct ddfs_boot_sector *boot_sector)
 
 unsigned int calculate_data_offset(struct ddfs_sb_info *sbi)
 {
-	unsigned int first_data_cluster = 1; // 1 for boot sector
+	unsigned int first_data_cluster = 1; // 1 for super block
 	unsigned int table_end = sbi->table_offset + sbi->table_size;
 
 	first_data_cluster += table_end / sbi->cluster_size;
