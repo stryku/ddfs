@@ -1,4 +1,5 @@
 #include "ddfs.h"
+#include "table.h"
 
 static inline struct ddfs_block
 ddfs_default_block_reading_provider(void *data, unsigned block_no)
@@ -505,29 +506,27 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
 {
 	struct super_block *sb = sbi->sb;
-	struct buffer_head *bh;
-	__u32 *clusters;
-	const unsigned table_block_no = sbi->v.table_offset / sbi->v.block_size;
+	struct ddfs_table table;
 
 	dd_print("ddfs_take_first_root_cluster_if_not_taken");
 
 	lock_table(sbi);
-	bh = sb_bread(sb, table_block_no);
-	if (!bh) {
-		dd_print("sb_bread failed");
+
+	table = ddfs_access_table(ddfs_default_block_reading_provider, sb,
+				  &sbi->v);
+	if (!table.clusters) {
+		dd_print("failed accessing table");
 		// Todo: handle
 	}
-	dd_print("sb_bread succeed");
+	dd_print("accessing table succeed");
 
-	clusters = (__u32 *)bh->b_data;
-
-	if (*clusters == DDFS_CLUSTER_UNUSED) {
+	if (table.clusters[0] == DDFS_CLUSTER_UNUSED) {
 		dd_print("Setting first root cluster to %d", DDFS_CLUSTER_EOF);
-		*clusters = DDFS_CLUSTER_EOF;
-		mark_buffer_dirty(bh);
+		table.clusters[0] = DDFS_CLUSTER_EOF;
+		mark_buffer_dirty(table.block.bh);
 	}
 
-	brelse(bh);
+	brelse(table.block.bh);
 	unlock_table(sbi);
 
 	dd_print("~ddfs_take_first_root_cluster_if_not_taken 0");
@@ -537,34 +536,30 @@ static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
 int ddfs_find_free_cluster(struct super_block *sb)
 {
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	struct buffer_head *bh;
-	__u32 *clusters;
+	struct ddfs_table table;
 	unsigned cluster_no = 0;
-	const unsigned table_block_no = sbi->v.table_offset / sbi->v.block_size;
 
 	dd_print("ddfs_find_free_cluster");
 
 	lock_table(sbi);
-	bh = sb_bread(sb, table_block_no);
-	if (!bh) {
-		dd_print("sb_bread failed");
+
+	table = ddfs_access_table(ddfs_default_block_reading_provider, sb,
+				  &sbi->v);
+	if (!table.clusters) {
+		dd_print("failed accessing table");
 		// Todo: handle
 	}
-	dd_print("sb_bread succeed");
+	dd_print("accessing table succeed");
 
-	clusters = (__u32 *)bh->b_data;
-
-	while (*clusters != DDFS_CLUSTER_UNUSED) {
-		++clusters;
+	while (table.clusters[cluster_no] != DDFS_CLUSTER_UNUSED) {
 		++cluster_no;
 	}
 
 	dd_print("found cluster %u", cluster_no);
-	*clusters = DDFS_CLUSTER_EOF;
+	table.clusters[cluster_no] = DDFS_CLUSTER_EOF;
 
-	mark_buffer_dirty(bh);
-	sync_dirty_buffer(bh); // Todo: is it needed?
-	brelse(bh);
+	mark_buffer_dirty(table.block.bh);
+	brelse(table.block.bh);
 	unlock_table(sbi);
 
 	dd_print("~ddfs_find_free_cluster %u", cluster_no);
