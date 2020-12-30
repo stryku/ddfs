@@ -19,7 +19,7 @@ void ddfs_dump_table(struct ddfs_table *table)
 	dd_print("\tindex_offset %u", table->index_offset);
 }
 
-inline struct ddfs_table ddfs_access_table(block_provider block_providing_fun,
+inline struct ddfs_table ddfs_table_access(block_provider block_providing_fun,
 					   void *block_providing_data,
 					   const struct ddfs_sbi_values *sbi_v)
 {
@@ -28,7 +28,7 @@ inline struct ddfs_table ddfs_access_table(block_provider block_providing_fun,
 		.index_offset = 0 // Todo: handle bigger tables
 	};
 
-	dd_print("ddfs_access_table");
+	dd_print("ddfs_table_access");
 
 	result.block =
 		block_providing_fun(block_providing_data, table_block_no);
@@ -40,7 +40,7 @@ inline struct ddfs_table ddfs_access_table(block_provider block_providing_fun,
 
 	ddfs_dump_table(&result);
 
-	dd_print("~ddfs_access_table");
+	dd_print("~ddfs_table_access");
 	return result;
 }
 

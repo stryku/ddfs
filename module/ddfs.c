@@ -512,7 +512,7 @@ static int ddfs_take_first_root_cluster_if_not_taken(struct ddfs_sb_info *sbi)
 
 	lock_table(sbi);
 
-	table = ddfs_access_table(ddfs_default_block_reading_provider, sb,
+	table = ddfs_table_access(ddfs_default_block_reading_provider, sb,
 				  &sbi->v);
 	if (!table.clusters) {
 		dd_print("failed accessing table");
@@ -543,7 +543,7 @@ int ddfs_find_free_cluster(struct super_block *sb)
 
 	lock_table(sbi);
 
-	table = ddfs_access_table(ddfs_default_block_reading_provider, sb,
+	table = ddfs_table_access(ddfs_default_block_reading_provider, sb,
 				  &sbi->v);
 	if (!table.clusters) {
 		dd_print("failed accessing table");
