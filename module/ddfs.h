@@ -96,6 +96,8 @@ struct ddfs_sb_info {
 	struct mutex build_inode_lock;
 
 	const void *dir_ops; /* Opaque; default directory operations */
+
+	struct super_block *sb;
 };
 
 static inline struct ddfs_sb_info *DDFS_SB(struct super_block *sb)
