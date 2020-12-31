@@ -24,24 +24,22 @@ inline struct ddfs_table ddfs_table_access(block_provider block_providing_fun,
 					   const struct ddfs_sbi_values *sbi_v)
 {
 	const unsigned table_block_no = sbi_v->table_offset / sbi_v->block_size;
-	struct ddfs_table result = {
-		.index_offset = 0 // Todo: handle bigger tables
-	};
+	struct ddfs_table table;
 
 	dd_print("ddfs_table_access");
+	table.index_offset = 0; // Todo: handle bigger tables
 
-	result.block =
-		block_providing_fun(block_providing_data, table_block_no);
-	if (result.block.bh != NULL) {
-		result.clusters = (DDFS_TABLE_ENTRY_TYPE *)result.block.data;
+	table.block = block_providing_fun(block_providing_data, table_block_no);
+	if (table.block.bh != NULL) {
+		table.clusters = (DDFS_TABLE_ENTRY_TYPE *)table.block.data;
 	} else {
-		result.clusters = NULL;
+		table.clusters = NULL;
 	}
 
-	ddfs_dump_table(&result);
+	ddfs_dump_table(&table);
 
 	dd_print("~ddfs_table_access");
-	return result;
+	return retablesult;
 }
 
 inline int ddfs_table_find_free_cluster(struct ddfs_table *table,
