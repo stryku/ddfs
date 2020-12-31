@@ -129,15 +129,15 @@ void dump_dir_entry_ptrs(const struct dir_entry_ptrs *ptrs)
 	dd_print("\t\tptrs->first_cluster.bh: %px", ptrs->first_cluster.bh);
 }
 
-static inline void release_dir_entries(const struct dir_entry_ptrs *ptrs,
-				       unsigned part_flags)
+static inline void ddfs_release_dir_entries(const struct dir_entry_ptrs *ptrs,
+					    unsigned part_flags)
 {
 	struct buffer_head *hydra[4];
 	unsigned counter = 0;
 	int already_freed = 0;
 	int i;
 
-	dd_print("release_dir_entries: ptrs: %p, part_flags: %u", ptrs,
+	dd_print("ddfs_release_dir_entries: ptrs: %p, part_flags: %u", ptrs,
 		 part_flags);
 	dump_dir_entry_ptrs(ptrs);
 

@@ -138,7 +138,7 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 			// err = sync_dirty_buffer(bh);
 		}
 
-		release_dir_entries(&entry_ptrs, part_flags);
+		ddfs_release_dir_entries(&entry_ptrs, part_flags);
 	}
 
 	dd_print("calling unlock_data");
@@ -406,16 +406,16 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 	de->size = 0;
 	de->entry_index = new_entry_index;
 
-	release_dir_entries(&parts_ptrs,
-			    DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	ddfs_release_dir_entries(&parts_ptrs,
+				 DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
 
 	dd_print("~ddfs_add_dir_entry 0");
 	return 0;
 
 fail_io:
 	--dd_idir->number_of_entries;
-	release_dir_entries(&parts_ptrs,
-			    DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	ddfs_release_dir_entries(&parts_ptrs,
+				 DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
 
 	dd_print("~ddfs_add_dir_entry error: %d", -EIO);
 	return -EIO;
@@ -612,8 +612,8 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 			// Todo: handle entry_ptrs.first_cluster == null
 			*entry_ptrs.first_cluster.ptr = cluster_no;
 
-			release_dir_entries(&entry_ptrs,
-					    DDFS_PART_FIRST_CLUSTER);
+			ddfs_release_dir_entries(&entry_ptrs,
+						 DDFS_PART_FIRST_CLUSTER);
 
 			inode_inc_iversion(parent_dir_inode);
 			mark_inode_dirty(parent_dir_inode);
@@ -876,7 +876,8 @@ static int ddfs_find(struct inode *dir, const char *name,
 				dest_de->attributes =
 					*entry_ptrs.attributes.ptr;
 
-				release_dir_entries(&entry_ptrs, DDFS_PART_ALL);
+				ddfs_release_dir_entries(&entry_ptrs,
+							 DDFS_PART_ALL);
 
 				dd_print("~ddfs_find 0");
 				return 0;
@@ -887,7 +888,7 @@ static int ddfs_find(struct inode *dir, const char *name,
 			}
 		}
 
-		release_dir_entries(&entry_ptrs, DDFS_PART_NAME);
+		ddfs_release_dir_entries(&entry_ptrs, DDFS_PART_NAME);
 	}
 
 	dd_print("~ddfs_find %d", -ENOENT);
