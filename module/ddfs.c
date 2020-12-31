@@ -1175,7 +1175,8 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	sbi->dir_ops = &ddfs_dir_inode_operations;
 
 	sbi->v.combined_dir_entry_parts_size =
-		sizeof(DDFS_DIR_ENTRY_NAME_TYPE) * 4 +
+		sizeof(DDFS_DIR_ENTRY_NAME_TYPE) *
+			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 		sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
 		sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) +
 		sizeof(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE);
