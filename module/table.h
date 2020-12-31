@@ -39,7 +39,7 @@ inline struct ddfs_table ddfs_table_access(block_provider block_providing_fun,
 	ddfs_dump_table(&table);
 
 	dd_print("~ddfs_table_access");
-	return retablesult;
+	return table;
 }
 
 inline int ddfs_table_find_free_cluster(struct ddfs_table *table,
