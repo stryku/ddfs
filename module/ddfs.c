@@ -537,7 +537,7 @@ int ddfs_find_free_cluster(struct super_block *sb)
 {
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	struct ddfs_table table;
-	unsigned cluster_no = 0;
+	int cluster_no = 0;
 
 	dd_print("ddfs_find_free_cluster");
 
@@ -551,18 +551,20 @@ int ddfs_find_free_cluster(struct super_block *sb)
 	}
 	dd_print("accessing table succeed");
 
-	while (table.clusters[cluster_no] != DDFS_CLUSTER_UNUSED) {
-		++cluster_no;
+	cluster_no = ddfs_table_find_free_cluster(&table, &sbi->v);
+	if (cluster_no == -1) {
+		// Todo handle
+		dd_print("No free cluster");
 	}
 
-	dd_print("found cluster %u", cluster_no);
+	dd_print("found cluster %d", cluster_no);
 	table.clusters[cluster_no] = DDFS_CLUSTER_EOF;
 
 	mark_buffer_dirty(table.block.bh);
 	brelse(table.block.bh);
 	unlock_table(sbi);
 
-	dd_print("~ddfs_find_free_cluster %u", cluster_no);
+	dd_print("~ddfs_find_free_cluster %d", cluster_no);
 	return cluster_no;
 }
 
@@ -1144,8 +1146,17 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	mutex_init(&sbi->s_lock);
 	sbi->sb = sb;
 	sbi->dir_ops = &ddfs_dir_inode_operations;
+
+	sbi->v.combined_dir_entry_parts_size =
+		sizeof(DDFS_DIR_ENTRY_NAME_TYPE) * 4 +
+		sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
+		sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) +
+		sizeof(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE);
+
 	sbi->v.cluster_size = sb->s_blocksize * sbi->v.blocks_per_cluster;
 	sbi->v.number_of_table_entries = boot_sector.number_of_clusters;
+	sbi->v.number_of_table_entries_per_cluster =
+		sbi->v.cluster_size / sizeof(DDFS_TABLE_ENTRY_TYPE);
 	sbi->v.table_offset = sbi->v.cluster_size;
 	sbi->v.table_size =
 		boot_sector.number_of_clusters * sizeof(struct ddfs_dir_entry);
@@ -1155,7 +1166,7 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	sbi->v.block_size = sb->s_blocksize;
 
 	sbi->v.entries_per_cluster =
-		sbi->v.cluster_size / sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+		sbi->v.cluster_size / sbi->v.combined_dir_entry_parts_size;
 
 	sbi->v.name_entries_offset = 0;
 	sbi->v.attributes_entries_offset =
