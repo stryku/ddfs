@@ -537,7 +537,7 @@ int ddfs_find_free_cluster(struct super_block *sb)
 {
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	struct ddfs_table table;
-	unsigned cluster_no = 0;
+	int cluster_no = 0;
 
 	dd_print("ddfs_find_free_cluster");
 
@@ -551,18 +551,20 @@ int ddfs_find_free_cluster(struct super_block *sb)
 	}
 	dd_print("accessing table succeed");
 
-	while (table.clusters[cluster_no] != DDFS_CLUSTER_UNUSED) {
-		++cluster_no;
+	cluster_no = ddfs_table_find_free_cluster(&table, &sbi->v);
+	if (cluster_no == -1) {
+		// Todo handle
+		dd_print("No free cluster");
 	}
 
-	dd_print("found cluster %u", cluster_no);
+	dd_print("found cluster %d", cluster_no);
 	table.clusters[cluster_no] = DDFS_CLUSTER_EOF;
 
 	mark_buffer_dirty(table.block.bh);
 	brelse(table.block.bh);
 	unlock_table(sbi);
 
-	dd_print("~ddfs_find_free_cluster %u", cluster_no);
+	dd_print("~ddfs_find_free_cluster %d", cluster_no);
 	return cluster_no;
 }
 
@@ -588,8 +590,35 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 	if (cluster_no == DDFS_CLUSTER_NOT_ASSIGNED) {
 		dd_print("no cluster, need to search for a free one");
 		cluster_no = ddfs_find_free_cluster(inode->i_sb);
+		// Todo: handle cluster_no == -1 which means no free cluster available
 		dd_inode->i_logstart = cluster_no;
 		dd_inode->i_start = dd_inode->i_logstart + 3;
+
+		dd_print("assigning first cluster to parent's directory entry");
+		{
+			struct inode *parent_dir_inode =
+				d_inode(file->f_path.dentry->d_parent);
+
+			const struct ddfs_dir_entry_calc_params calc_params =
+				ddfs_make_dir_entry_calc_params(
+					parent_dir_inode);
+
+			const struct dir_entry_ptrs entry_ptrs =
+				ddfs_access_dir_entries(
+					ddfs_default_block_reading_provider, sb,
+					&calc_params, dd_inode->dentry_index,
+					DDFS_PART_FIRST_CLUSTER);
+
+			// Todo: handle entry_ptrs.first_cluster == null
+			*entry_ptrs.first_cluster.ptr = cluster_no;
+
+			release_dir_entries(&entry_ptrs,
+					    DDFS_PART_FIRST_CLUSTER);
+
+			inode_inc_iversion(parent_dir_inode);
+			mark_inode_dirty(parent_dir_inode);
+		}
+
 		inode_inc_iversion(inode);
 		mark_inode_dirty(inode);
 	}
@@ -1144,8 +1173,18 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	mutex_init(&sbi->s_lock);
 	sbi->sb = sb;
 	sbi->dir_ops = &ddfs_dir_inode_operations;
+
+	sbi->v.combined_dir_entry_parts_size =
+		sizeof(DDFS_DIR_ENTRY_NAME_TYPE) *
+			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
+		sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
+		sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) +
+		sizeof(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE);
+
 	sbi->v.cluster_size = sb->s_blocksize * sbi->v.blocks_per_cluster;
 	sbi->v.number_of_table_entries = boot_sector.number_of_clusters;
+	sbi->v.number_of_table_entries_per_cluster =
+		sbi->v.cluster_size / sizeof(DDFS_TABLE_ENTRY_TYPE);
 	sbi->v.table_offset = sbi->v.cluster_size;
 	sbi->v.table_size =
 		boot_sector.number_of_clusters * sizeof(struct ddfs_dir_entry);
@@ -1155,7 +1194,7 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	sbi->v.block_size = sb->s_blocksize;
 
 	sbi->v.entries_per_cluster =
-		sbi->v.cluster_size / sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+		sbi->v.cluster_size / sbi->v.combined_dir_entry_parts_size;
 
 	sbi->v.name_entries_offset = 0;
 	sbi->v.attributes_entries_offset =
