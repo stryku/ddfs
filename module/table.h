@@ -47,20 +47,23 @@ inline struct ddfs_table ddfs_table_access(block_provider block_providing_fun,
 inline int ddfs_table_find_free_cluster(struct ddfs_table *table,
 					const struct ddfs_sbi_values *sbi_v)
 {
+	int cluster_no = 0;
+
 	dd_print(
 		"ddfs_table_find_free_cluster sbi_v.number_of_table_entries_per_cluster: %u",
 		sbi_v->number_of_table_entries_per_cluster);
 	ddfs_dump_table(table);
 
-	int cluster_no = 0;
-
 	for (; cluster_no < sbi_v->number_of_table_entries_per_cluster;
 	     ++cluster_no) {
 		if (table->clusters[cluster_no] == DDFS_CLUSTER_UNUSED) {
+			dd_print("~ddfs_table_find_free_cluster %d",
+				 cluster_no);
 			return cluster_no;
 		}
 	}
 
+	dd_print("~ddfs_table_find_free_cluster -1");
 	return -1;
 }
 
