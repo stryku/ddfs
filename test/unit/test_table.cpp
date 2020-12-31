@@ -22,7 +22,7 @@ TEST_CASE("DDFS.Table.find_free_cluster empty table")
 	REQUIRE_EQ(result, 0);
 }
 
-TEST_CASE("DDFS.Table.find_free_cluster almost fully taken")
+TEST_CASE("DDFS.Table.find_free_cluster almost all taken")
 {
 	std::vector<DDFS_TABLE_ENTRY_TYPE> clusters(k_entries_per_cluster,
 						    DDFS_CLUSTER_EOF);
@@ -48,7 +48,7 @@ TEST_CASE("DDFS.Table.find_free_cluster almost fully taken")
 	}
 }
 
-TEST_CASE("DDFS.Table.find_free_cluster fully taken")
+TEST_CASE("DDFS.Table.find_free_cluster all taken")
 {
 	std::vector<DDFS_TABLE_ENTRY_TYPE> clusters(k_entries_per_cluster,
 						    DDFS_CLUSTER_EOF);
