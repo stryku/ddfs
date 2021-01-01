@@ -36,7 +36,8 @@ do
         FAILED_TESTS_COUNT=$((${FAILED_TESTS_COUNT}+1))
     fi
 
-    ./test_teardown.sh $MODULE_NAME $DDFS_DIR
+    # ./test_teardown.sh $MODULE_NAME $DDFS_DIR
+    python3 test_teardown.py $MODULE_NAME $DDFS_DIR
     ec=$?
     if [[ ec -eq 0 ]]
     then
