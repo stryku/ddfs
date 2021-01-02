@@ -13,7 +13,8 @@ do
     DDFS_DIR=$(mktemp -d)
     DDFS_IMG=$(mktemp)
 
-    ./test_setup.sh $MODULE_NAME $DDFS_DIR $DDFS_IMG
+    # ./test_setup.sh $MODULE_NAME $DDFS_DIR $DDFS_IMG
+    python3 test_setup.py $MODULE_NAME $DDFS_DIR $DDFS_IMG
     ec=$?
     if [[ ec -eq 0 ]]
     then
