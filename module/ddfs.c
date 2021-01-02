@@ -1061,20 +1061,6 @@ void log_boot_sector(struct ddfs_boot_sector *boot_sector)
 		 (unsigned)boot_sector->number_of_clusters);
 }
 
-unsigned int calculate_data_offset(struct ddfs_sb_info *sbi)
-{
-	unsigned int first_data_cluster = 1; // 1 for super block
-	unsigned int table_end = sbi->v.table_offset + sbi->v.table_size;
-
-	first_data_cluster += table_end / sbi->v.cluster_size;
-
-	if (table_end % sbi->v.cluster_size != 0) {
-		++first_data_cluster;
-	}
-
-	return first_data_cluster * sbi->v.cluster_size;
-}
-
 /* Convert ddfs attribute bits and a mask to the UNIX mode. */
 static inline umode_t ddfs_make_mode(struct ddfs_sb_info *sbi, u8 attrs,
 				     umode_t mode)
@@ -1169,38 +1155,7 @@ static int ddfs_fill_super(struct super_block *sb, void *data, int silent)
 	sbi->sb = sb;
 	sbi->dir_ops = &ddfs_dir_inode_operations;
 
-	sbi->v.combined_dir_entry_parts_size =
-		sizeof(DDFS_DIR_ENTRY_NAME_TYPE) *
-			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
-		sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
-		sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) +
-		sizeof(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE);
-
-	sbi->v.cluster_size = sb->s_blocksize * sbi->v.blocks_per_cluster;
-	sbi->v.number_of_table_entries = boot_sector.number_of_clusters;
-	sbi->v.number_of_table_entries_per_cluster =
-		sbi->v.cluster_size / sizeof(DDFS_TABLE_ENTRY_TYPE);
-	sbi->v.table_offset = sbi->v.cluster_size;
-	sbi->v.table_size =
-		boot_sector.number_of_clusters * sizeof(struct ddfs_dir_entry);
-	sbi->v.data_offset = calculate_data_offset(sbi);
-	sbi->v.data_cluster_no = sbi->v.data_offset / sbi->v.cluster_size;
-	sbi->v.root_cluster = sbi->v.data_cluster_no;
-	sbi->v.block_size = sb->s_blocksize;
-
-	sbi->v.entries_per_cluster =
-		sbi->v.cluster_size / sbi->v.combined_dir_entry_parts_size;
-
-	sbi->v.name_entries_offset = 0;
-	sbi->v.attributes_entries_offset =
-		sbi->v.entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
-	sbi->v.size_entries_offset =
-		sbi->v.attributes_entries_offset +
-		sbi->v.entries_per_cluster *
-			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
-	sbi->v.first_cluster_entries_offset =
-		sbi->v.size_entries_offset +
-		sbi->v.entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+	sbi->v = ddfs_calc_sbi_values(&boot_sector);
 
 	dd_print("Making root inode");
 	root_inode = new_inode(sb);
