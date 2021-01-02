@@ -113,6 +113,16 @@ def run_tests(ddfs_image_path: str):
     assert root_entries[0].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED
     assert root_entries[0].attributes == DdfsConsts.FILE_ATTR
 
+    assert root_entries[1].name == 'bbb\x00'.encode()
+    assert root_entries[1].size == 0
+    assert root_entries[1].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED
+    assert root_entries[1].attributes == DdfsConsts.FILE_ATTR
+
+    assert root_entries[2].name == 'ccc\x00'.encode()
+    assert root_entries[2].size == 0
+    assert root_entries[2].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED
+    assert root_entries[2].attributes == DdfsConsts.FILE_ATTR
+
     return 0
 
 

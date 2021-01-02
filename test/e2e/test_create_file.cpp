@@ -13,16 +13,16 @@ TEST_CASE("DDFS.FileCreation")
 	REQUIRE(std::fclose(fp) == 0);
 }
 
-// TEST_CASE("DDFS.MultipleFileCreation")
-// {
-// 	FILE *fpa = std::fopen(make_path("/aaa").c_str(), "w");
-// 	REQUIRE(fpa != nullptr);
-// 	FILE *fpb = std::fopen(make_path("/bbb").c_str(), "w");
-// 	REQUIRE(fpb != nullptr);
-// 	FILE *fpc = std::fopen(make_path("/ccc").c_str(), "w");
-// 	REQUIRE(fpc != nullptr);
+TEST_CASE("DDFS.MultipleFileCreation")
+{
+	FILE *fpa = std::fopen(make_path("/aaa").c_str(), "w");
+	REQUIRE(fpa != nullptr);
+	FILE *fpb = std::fopen(make_path("/bbb").c_str(), "w");
+	REQUIRE(fpb != nullptr);
+	FILE *fpc = std::fopen(make_path("/ccc").c_str(), "w");
+	REQUIRE(fpc != nullptr);
 
-// 	REQUIRE(std::fclose(fpa) == 0);
-// 	REQUIRE(std::fclose(fpb) == 0);
-// 	REQUIRE(std::fclose(fpc) == 0);
-// }
+	REQUIRE(std::fclose(fpa) == 0);
+	REQUIRE(std::fclose(fpb) == 0);
+	REQUIRE(std::fclose(fpc) == 0);
+}
