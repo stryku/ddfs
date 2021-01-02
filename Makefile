@@ -23,7 +23,7 @@ rune2etests: test .FORCE
 	-cd test/e2e && ./run_all_tests.sh ${random_module_name}
 
 runalltests: test .FORCE
-	-cd test/unit && ./run_all_tests.sh && cd ../e2e && ./run_all_tests.sh ${random_module_name}
+	-cd test/unit && ./run_all_tests.sh && cd ../e2e && python3 run_all_tests.py ${random_module_name}
 
 clean:
 	make -C module clean
