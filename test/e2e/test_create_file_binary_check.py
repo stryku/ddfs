@@ -8,6 +8,9 @@ class DdfsConsts:
     CLUSTER_NOT_ASSIGNED = 0xfffffffe
     CLUSTER_EOF = 0xffffffff
 
+    FILE_ATTR = 1
+    DIR_ATTR = 2
+
 
 class DdfsDirEntry:
     def __init__(self, name: bytes, attributes: int, size: int, first_cluster: int):
@@ -100,13 +103,12 @@ def run_tests(ddfs_image_path: str):
         (image_reader.table_size - 1)
 
     root_dir = image_reader.root_dir()
-    print(root_dir)
     root_entries = image_reader.decode_dir_entries(root_dir)
 
-    print(str(root_entries[0]))
     assert root_entries[0].name == 'aaa\x00'.encode()
     assert root_entries[0].size == 0
     assert root_entries[0].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED
+    assert root_entries[0].attributes == DdfsConsts.FILE_ATTR
 
     return 0
 
