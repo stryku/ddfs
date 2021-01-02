@@ -1044,12 +1044,6 @@ static const struct dentry_operations ddfs_dentry_ops = {
 	.d_compare = ddfs_cmp,
 };
 
-struct ddfs_boot_sector {
-	__u32 sector_size;
-	__u32 sectors_per_cluster;
-	__u32 number_of_clusters;
-};
-
 long ddfs_read_boot_sector(struct super_block *sb, void *data,
 			   struct ddfs_boot_sector *boot_sector)
 {

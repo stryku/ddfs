@@ -4,4 +4,7 @@ test:
 
 all: test
 
-.PHONY: test
+clean:
+	make -C unit clean
+
+.PHONY: test clean

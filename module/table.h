@@ -4,8 +4,6 @@
 #include "consts.h"
 #include "sbi_values.h"
 
-#define DDFS_TABLE_ENTRY_TYPE __u32
-
 struct ddfs_table {
 	DDFS_TABLE_ENTRY_TYPE *clusters;
 	struct ddfs_block block;

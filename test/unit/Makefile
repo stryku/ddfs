@@ -9,4 +9,7 @@ all: $(patsubst %.cpp, %.out, $(wildcard *.cpp))
 
 test: all
 
-.PHONY: test
+clean:
+	-rm *.out
+
+.PHONY: test clean

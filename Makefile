@@ -27,6 +27,7 @@ runalltests: test .FORCE
 
 clean:
 	make -C module clean
+	make -C test clean
 
 .PHONY: all module test
 .FORCE:
