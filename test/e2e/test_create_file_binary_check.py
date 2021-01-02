@@ -22,6 +22,9 @@ class DdfsDirEntry:
     def __str__(self):
         return 'name: {}, attr: {}, size: {}, first_cluster: {}'.format(self.name, self.attributes, self.size, self.first_cluster)
 
+    def __eq__(self, other):
+        return str(self) == str(other)
+
 
 class DdfsImageReader:
     def __init__(self, ddfs_img_path: str):
