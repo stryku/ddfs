@@ -14,10 +14,7 @@ def save_journal():
         test_log('Saved journal to: {}'.format(f.name))
 
 
-def setup():
-    module_name = sys.argv[1]
-    ddfs_dir = sys.argv[2]
-    ddfs_img = sys.argv[3]
+def setup(module_name: str, ddfs_dir: str, ddfs_img: str):
     module_path = os.path.abspath('../../module/{}.ko'.format(module_name))
 
     test_log('Test setup module path: {}, DDFS_DIR: {}, DDFS_IMG: {}'.format(
@@ -54,4 +51,7 @@ def setup():
 
 
 if __name__ == '__main__':
-    exit(setup())
+    module_name = sys.argv[1]
+    ddfs_dir = sys.argv[2]
+    ddfs_img = sys.argv[3]
+    exit(setup(module_name, ddfs_dir, ddfs_img))

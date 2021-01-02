@@ -13,9 +13,7 @@ def save_journal():
         test_log('Saved journal to: {}'.format(f.name))
 
 
-def teardown():
-    module_name = sys.argv[1]
-    ddfs_dir = sys.argv[2]
+def teardown(module_name: str, ddfs_dir: str):
 
     test_log('Test teardown module path: {}, DDFS_DIR: {}'.format(
         module_name, ddfs_dir))
@@ -45,4 +43,6 @@ def teardown():
 
 
 if __name__ == "__main__":
-    exit(teardown())
+    module_name = sys.argv[1]
+    ddfs_dir = sys.argv[2]
+    exit(teardown(module_name, ddfs_dir))
