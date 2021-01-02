@@ -366,7 +366,6 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 	int i;
 	struct ddfs_inode_info *dd_idir = DDFS_I(dir);
 	struct super_block *sb = dir->i_sb;
-	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	// Todo: handle no space on cluster
 
 	const unsigned new_entry_index = dd_idir->number_of_entries;
