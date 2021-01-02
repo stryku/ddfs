@@ -138,17 +138,19 @@ static int __ddfs_write_inode(struct inode *inode, int wait)
 			ddfs_default_block_reading_provider, sb, &calc_params,
 			dd_inode->dentry_index, part_flags);
 
-		*entry_ptrs.first_cluster.ptr = dd_inode->i_logstart;
-		*entry_ptrs.size.ptr = inode->i_size;
-		*entry_ptrs.attributes.ptr = DDFS_FILE_ATTR;
+		// *entry_ptrs.first_cluster.ptr = dd_inode->i_logstart;
+		// *entry_ptrs.size.ptr = inode->i_size;
+		// *entry_ptrs.attributes.ptr = DDFS_FILE_ATTR;
 
-		mark_buffer_dirty(entry_ptrs.first_cluster.bh);
-		mark_buffer_dirty(entry_ptrs.size.bh);
-		mark_buffer_dirty(entry_ptrs.attributes.bh);
-		if (wait) {
-			// Todo: handle
-			// err = sync_dirty_buffer(bh);
-		}
+		// mark_buffer_dirty(entry_ptrs.first_cluster.bh);
+		// mark_buffer_dirty(entry_ptrs.size.bh);
+		// mark_buffer_dirty(entry_ptrs.attributes.bh);
+		// if (wait) {
+		// 	// Todo: handle failures
+		// 	sync_dirty_buffer(entry_ptrs.first_cluster.bh);
+		// 	sync_dirty_buffer(entry_ptrs.size.bh);
+		// 	sync_dirty_buffer(entry_ptrs.attributes.bh);
+		// }
 
 		ddfs_release_dir_entries(&entry_ptrs, part_flags);
 	}
@@ -364,6 +366,7 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 	int i;
 	struct ddfs_inode_info *dd_idir = DDFS_I(dir);
 	struct super_block *sb = dir->i_sb;
+	struct ddfs_sb_info *sbi = DDFS_SB(sb);
 	// Todo: handle no space on cluster
 
 	const unsigned new_entry_index = dd_idir->number_of_entries;
@@ -371,9 +374,10 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 	const struct ddfs_dir_entry_calc_params calc_params =
 		ddfs_make_dir_entry_calc_params(dir);
 
-	const struct dir_entry_ptrs parts_ptrs = ddfs_access_dir_entries(
-		ddfs_default_block_reading_provider, sb, &calc_params,
-		new_entry_index, DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	const struct dir_entry_ptrs parts_ptrs =
+		ddfs_access_dir_entries(ddfs_default_block_reading_provider, sb,
+					&calc_params, new_entry_index,
+					DDFS_PART_ALL);
 
 	dd_print("ddfs_add_dir_entry, dir: %p, name: %s, de: %p", dir,
 		 (const char *)qname->name, de);
@@ -408,26 +412,33 @@ static long ddfs_add_dir_entry(struct inode *dir, const struct qstr *qname,
 	}
 
 	*parts_ptrs.first_cluster.ptr = DDFS_CLUSTER_NOT_ASSIGNED;
-	inode_inc_iversion(dir);
 	mark_buffer_dirty(parts_ptrs.first_cluster.bh);
-	sync_dirty_buffer(parts_ptrs.name.bh);
+	sync_dirty_buffer(parts_ptrs.first_cluster.bh);
+
+	*parts_ptrs.size.ptr = 0;
+	mark_buffer_dirty(parts_ptrs.size.bh);
+	sync_dirty_buffer(parts_ptrs.size.bh);
+
+	*parts_ptrs.attributes.ptr = DDFS_FILE_ATTR;
+	mark_buffer_dirty(parts_ptrs.attributes.bh);
+	sync_dirty_buffer(parts_ptrs.attributes.bh);
+
+	inode_inc_iversion(dir);
 	mark_inode_dirty(dir);
 
 	*de = ddfs_make_dir_entry(&parts_ptrs);
-	de->attributes = DDFS_FILE_ATTR;
-	de->size = 0;
+	// de->attributes = DDFS_FILE_ATTR;
+	// de->size = 0;
 	de->entry_index = new_entry_index;
 
-	ddfs_release_dir_entries(&parts_ptrs,
-				 DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	ddfs_release_dir_entries(&parts_ptrs, DDFS_PART_ALL);
 
 	dd_print("~ddfs_add_dir_entry 0");
 	return 0;
 
 fail_io:
 	--dd_idir->number_of_entries;
-	ddfs_release_dir_entries(&parts_ptrs,
-				 DDFS_PART_NAME | DDFS_PART_FIRST_CLUSTER);
+	ddfs_release_dir_entries(&parts_ptrs, DDFS_PART_ALL);
 
 	dd_print("~ddfs_add_dir_entry error: %d", -EIO);
 	return -EIO;

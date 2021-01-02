@@ -22,6 +22,7 @@ class DdfsDirEntry:
 
 class DdfsImageReader:
     def __init__(self, ddfs_img_path: str):
+        print('Reading ddfs image: {}'.format(ddfs_img_path))
         self._ddfs_img_path = ddfs_img_path
         with open(self._ddfs_img_path, 'rb') as f:
             self._raw_data = f.read()
@@ -55,6 +56,9 @@ class DdfsImageReader:
         attributes_offset = self.dir_entries_per_cluster * 4
         size_offset = self.dir_entries_per_cluster * (4+1)
         first_cluster_offset = self.dir_entries_per_cluster * (4 + 1 + 8)
+
+        print('{}, {}, {}, {}'.format(name_offset,
+                                      attributes_offset, size_offset, first_cluster_offset))
 
         for i in range(self.dir_entries_per_cluster):
             name = struct.unpack('4c', cluster[name_offset:name_offset + 4])
@@ -96,12 +100,13 @@ def run_tests(ddfs_image_path: str):
         (image_reader.table_size - 1)
 
     root_dir = image_reader.root_dir()
+    print(root_dir)
     root_entries = image_reader.decode_dir_entries(root_dir)
 
     print(str(root_entries[0]))
     assert root_entries[0].name == 'aaa\x00'.encode()
     assert root_entries[0].size == 0
-    assert root_entries[0].first_cluster == 1
+    assert root_entries[0].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED
 
     return 0
 

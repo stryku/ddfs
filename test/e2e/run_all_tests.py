@@ -14,8 +14,9 @@ def test_log(msg):
 
 
 def save_journal():
+    global MODULE_NAME
     output = subprocess.check_output('journalctl -k', shell=True)
-    with open('test.journal', 'wb') as f:
+    with open('test_{}.journal'.format(MODULE_NAME), 'wb') as f:
         f.write(output)
         test_log('Saved journal to: {}'.format(f.name))
 
@@ -61,6 +62,13 @@ for test_binary_file in glob.glob('*.out'):
         FAILED_TESTS_COUNT += 1
         passed = False
 
+    ret = test_teardown.teardown(module_name=MODULE_NAME, ddfs_dir=ddfs_dir)
+    if ret == 0:
+        log('TEST TEARDOWN SUCCESS')
+    else:
+        log('TEST TEARDOWN FAILED')
+        FAILED_TESTS_COUNT += 1
+
     if not passed:
         log('Test failed - not looking for binary check tests')
     else:
@@ -75,20 +83,18 @@ for test_binary_file in glob.glob('*.out'):
         else:
             log('Running binary check...')
             module = importlib.import_module(binary_check_module_name)
-            run_tests = getattr(module, 'run_tests')
-            ret = run_tests(ddfs_img)
+            try:
+                run_tests = getattr(module, 'run_tests')
+                ret = run_tests(ddfs_img)
+            except:
+                ret = 1
+                passed = False
+
             if ret == 0:
                 log('Running binary check... PASSED')
             else:
                 log('Running binary check... FAILED')
                 FAILED_TESTS_COUNT += 1
-
-    ret = test_teardown.teardown(module_name=MODULE_NAME, ddfs_dir=ddfs_dir)
-    if ret == 0:
-        log('TEST TEARDOWN SUCCESS')
-    else:
-        log('TEST TEARDOWN FAILED')
-        FAILED_TESTS_COUNT += 1
 
     # Clean up only if passed
     if passed:
