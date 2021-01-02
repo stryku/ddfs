@@ -5,7 +5,6 @@
 
 struct ddfs_dir_entry {
 	unsigned entry_index;
-#define DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE 4
 	DDFS_DIR_ENTRY_NAME_TYPE name[DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE];
 	DDFS_DIR_ENTRY_ATTRIBUTES_TYPE attributes;
 	DDFS_DIR_ENTRY_SIZE_TYPE size;

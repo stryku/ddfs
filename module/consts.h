@@ -25,6 +25,9 @@
 #define DDFS_DIR_ENTRY_ATTRIBUTES_TYPE __u8
 #define DDFS_DIR_ENTRY_SIZE_TYPE __u64
 #define DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE __u32
+#define DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE 4
+
+#define DDFS_TABLE_ENTRY_TYPE __u32
 
 struct buffer_head;
 struct ddfs_block {
