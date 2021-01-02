@@ -21,8 +21,8 @@ done
 
 if [[ ${FAILED_TESTS_COUNT} -eq 0 ]]
 then
-    test_log "ALL TESTS PASSED"
+    test_log "ALL UNIT TESTS PASSED"
 else
-    test_log "SOME TESTS FAILED"
+    test_log "SOME UNIT TESTS FAILED"
     exit 1
 fi
