@@ -6,6 +6,7 @@ import glob
 import test_setup
 import test_teardown
 import shutil
+import importlib
 
 
 def test_log(msg):
@@ -42,13 +43,45 @@ for test_binary_file in glob.glob('*.out'):
         os.remove(ddfs_img)
         continue
 
+    passed = True
+
     try:
+        log('Running test...')
         subprocess.run('./{} {}'.format(
             test_binary_file, ddfs_dir), shell=True, check=True)
+        log('Running test... OK')
+
+        log('Syncing filesystem...')
+        subprocess.check_call('sync', shell=True)
+        log('Syncing filesystem... OK')
+
         log('PASSED')
     except:
         log('FAILED')
         FAILED_TESTS_COUNT += 1
+        passed = False
+
+    if not passed:
+        log('Test failed - not looking for binary check tests')
+    else:
+        binary_check_module_name = '{}_binary_check'.format(
+            os.path.splitext(test_binary_file)[0])
+        binary_check_module_path = '{}.py'.format(binary_check_module_name)
+
+        log('Test passed - looking for binary check tests: {}'.format(binary_check_module_path))
+
+        if not os.path.exists(binary_check_module_path):
+            log('Binary check module not found')
+        else:
+            log('Running binary check...')
+            module = importlib.import_module(binary_check_module_name)
+            run_tests = getattr(module, 'run_tests')
+            ret = run_tests(ddfs_img)
+            if ret == 0:
+                log('Running binary check... PASSED')
+            else:
+                log('Running binary check... FAILED')
+                FAILED_TESTS_COUNT += 1
 
     ret = test_teardown.teardown(module_name=MODULE_NAME, ddfs_dir=ddfs_dir)
     if ret == 0:
@@ -57,8 +90,10 @@ for test_binary_file in glob.glob('*.out'):
         log('TEST TEARDOWN FAILED')
         FAILED_TESTS_COUNT += 1
 
-    shutil.rmtree(ddfs_dir, ignore_errors=True)
-    os.remove(ddfs_img)
+    # Clean up only if passed
+    if passed:
+        shutil.rmtree(ddfs_dir, ignore_errors=True)
+        os.remove(ddfs_img)
 
 
 if FAILED_TESTS_COUNT == 0:
