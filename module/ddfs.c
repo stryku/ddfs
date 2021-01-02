@@ -39,32 +39,44 @@ ddfs_make_dir_entry_calc_params(struct inode *dir)
 
 static inline void lock_table(struct ddfs_sb_info *sbi)
 {
+	dd_print("lock_table");
 	mutex_lock(&sbi->table_lock);
+	dd_print("~lock_table");
 }
 
 static inline void unlock_table(struct ddfs_sb_info *sbi)
 {
+	dd_print("unlock_table");
 	mutex_unlock(&sbi->table_lock);
+	dd_print("~unlock_table");
 }
 
 static inline void lock_data(struct ddfs_sb_info *sbi)
 {
+	dd_print("lock_data");
 	mutex_lock(&sbi->s_lock);
+	dd_print("~lock_data");
 }
 
 static inline void unlock_data(struct ddfs_sb_info *sbi)
 {
+	dd_print("unlock_data");
 	mutex_unlock(&sbi->s_lock);
+	dd_print("~unlock_data");
 }
 
 static inline void lock_inode_build(struct ddfs_sb_info *sbi)
 {
+	dd_print("lock_inode_build");
 	mutex_lock(&sbi->build_inode_lock);
+	dd_print("~lock_inode_build");
 }
 
 static inline void unlock_inode_build(struct ddfs_sb_info *sbi)
 {
+	dd_print("unlock_inode_build");
 	mutex_unlock(&sbi->build_inode_lock);
+	dd_print("~unlock_inode_build");
 }
 
 static struct kmem_cache *ddfs_inode_cachep;
