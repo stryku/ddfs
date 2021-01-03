@@ -19,6 +19,10 @@ def run_tests(ddfs_image_path: str):
     root_dir = image_reader.root_dir()
     root_entries = image_reader.decode_dir_entries(root_dir)
 
+    print(root_entries[0])
+    print(root_entries[1])
+    print(root_entries[2])
+
     assert root_entries[0].name == 'aaa\x00'.encode()
     assert root_entries[0].size == 0
     assert root_entries[0].first_cluster == DdfsConsts.CLUSTER_NOT_ASSIGNED

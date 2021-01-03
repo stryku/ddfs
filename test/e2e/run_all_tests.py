@@ -1,4 +1,5 @@
 import sys
+import traceback
 import tempfile
 import os
 import subprocess
@@ -87,6 +88,7 @@ for test_binary_file in glob.glob('*.out'):
                 run_tests = getattr(module, 'run_tests')
                 ret = run_tests(ddfs_img)
             except:
+                traceback.print_exc()
                 ret = 1
                 passed = False
 
