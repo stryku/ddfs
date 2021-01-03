@@ -31,6 +31,7 @@ class DdfsImageReader:
         self.cluster_size = self.block_size
         self.table_entry_size = 4
         self.table_size = int(self.block_size / self.table_entry_size)
+        self.first_data_cluster = 2
         # For now assume dir entry type sizes: name, attributes, size, first cluster
         self.dir_entries_per_cluster = int(self.cluster_size / (4 + 1 + 8 + 4))
 
@@ -40,10 +41,14 @@ class DdfsImageReader:
         result = struct.unpack(unpack_format, raw_table)
         return list(result)
 
+    def read_cluster(self, logical_cluster_no: int) -> bytes:
+        offset = (logical_cluster_no + self.first_data_cluster) * \
+            self.cluster_size
+        return self._raw_data[offset:offset + self.cluster_size]
+
     def root_dir(self) -> bytes:
         # For now assume it occupies one cluster
-        offset = self.block_size * 2
-        return self._raw_data[offset:offset + self.block_size]
+        return self.read_cluster(0)
 
     def decode_dir_entries(self, cluster: bytes) -> List[DdfsDirEntry]:
         result = list()
