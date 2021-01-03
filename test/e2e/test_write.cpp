@@ -11,7 +11,7 @@ TEST_CASE("DDFS.Write")
 	FILE *fp = std::fopen(make_path("/aaa").c_str(), "w");
 	REQUIRE(fp != nullptr);
 
-	const auto to_write = std::string{ "foo, bar, baz" };
+	const auto to_write = std::string{ "aaa content" };
 
 	const auto write_size =
 		std::fwrite(to_write.data(), 1u, to_write.size(), fp);
@@ -22,11 +22,11 @@ TEST_CASE("DDFS.Write")
 
 TEST_CASE("DDFS.WriteRead")
 {
-	const auto path = make_path("aaa");
+	const auto path = make_path("bbb");
 	FILE *fp = std::fopen(path.c_str(), "w");
 	REQUIRE(fp != nullptr);
 
-	const auto to_write = std::string{ "foo, bar, baz" };
+	const auto to_write = std::string{ "bbb content" };
 
 	const auto write_size =
 		std::fwrite(to_write.data(), 1u, to_write.size(), fp);
@@ -48,13 +48,13 @@ TEST_CASE("DDFS.WriteRead")
 
 TEST_CASE("DDFS.MultipleWriteRead")
 {
-	const auto path = make_path("aaa");
+	const auto path = make_path("ccc");
 	FILE *fp = std::fopen(path.c_str(), "w");
 	REQUIRE(fp != nullptr);
 
-	const auto foo = std::string{ "foo " };
-	const auto bar = std::string{ "bar " };
-	const auto baz = std::string{ "baz" };
+	const auto foo = std::string{ "ccc " };
+	const auto bar = std::string{ "con" };
+	const auto baz = std::string{ "tent" };
 
 	const auto whole_str = foo + bar + baz;
 

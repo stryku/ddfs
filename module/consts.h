@@ -1,6 +1,8 @@
 #ifndef DDFS_CONSTS_H
 #define DDFS_CONSTS_H
 
+// Keep in sync with test/e2e/ddfs_consts.py
+
 #define DDFS_SUPER_MAGIC 0xddf5
 #define DDFS_CLUSTER_UNUSED 0
 #define DDFS_CLUSTER_NOT_ASSIGNED 0xfffffffe

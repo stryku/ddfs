@@ -259,7 +259,7 @@ ddfs_access_dir_entries(block_provider block_providing_fun,
 			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *)ptr;
 	}
 
-	dd_print("access_dir_entries dump 2");
+	// dd_print("access_dir_entries dump 2");
 	// dump_dir_entry_ptrs(&result);
 
 	return result;

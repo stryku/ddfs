@@ -6,9 +6,9 @@ def test_log(msg):
     print('[DDFS test] ' + msg)
 
 
-def save_journal():
+def save_journal(module_name):
     output = subprocess.check_output('journalctl -k', shell=True)
-    with open('test.journal', 'wb') as f:
+    with open('test_{}.journal'.format(module_name), 'wb') as f:
         f.write(output)
         test_log('Saved journal to: {}'.format(f.name))
 
@@ -22,7 +22,7 @@ def teardown(module_name: str, ddfs_dir: str):
     try:
         subprocess.check_call('umount {}'.format(ddfs_dir), shell=True)
     except:
-        save_journal()
+        save_journal(module_name)
         test_log('FAILED Umounting ddfs')
         return 1
     test_log('Umounting ddfs... OK')
@@ -31,12 +31,12 @@ def teardown(module_name: str, ddfs_dir: str):
     try:
         subprocess.check_call('rmmod {}'.format(module_name), shell=True)
     except:
-        save_journal()
+        save_journal(module_name)
         test_log('FAILED Removing module')
         return 1
     test_log('Removing module... OK')
 
-    save_journal()
+    save_journal(module_name)
 
     test_log('Test teardown end')
     return 0
