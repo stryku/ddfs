@@ -35,10 +35,15 @@ def run_tests(ddfs_image_path: str):
     aaa_cluster = image_reader.read_cluster(1)
     assert aaa_cluster[:len(aaa_content)] == aaa_content
 
-    # assert root_entries[1].name == 'bbb\x00'.encode()
-    # assert root_entries[1].size == 0
-    # assert root_entries[1].first_cluster == 2
-    # assert root_entries[1].attributes == DdfsConsts.FILE_ATTR
+    print(root_entries[0])
+    bbb_content = 'bbb content'.encode()
+    assert root_entries[1].name == 'bbb\x00'.encode()
+    assert root_entries[1].size == len(aaa_content)
+    assert root_entries[1].first_cluster == 2
+    assert root_entries[1].attributes == DdfsConsts.FILE_ATTR
+
+    bbb_cluster = image_reader.read_cluster(2)
+    assert bbb_cluster[:len(bbb_content)] == bbb_content
 
     # assert root_entries[2].name == 'ccc\x00'.encode()
     # assert root_entries[2].size == 0
