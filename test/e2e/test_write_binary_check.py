@@ -13,12 +13,12 @@ def run_tests(ddfs_image_path: str):
 
     # aaa, bbb and ccc files
     assert table[1] == DdfsConsts.CLUSTER_EOF
-    # assert table[2] == DdfsConsts.CLUSTER_EOF
+    assert table[2] == DdfsConsts.CLUSTER_EOF
     # assert table[3] == DdfsConsts.CLUSTER_EOF
 
     # All other cluster should be unused because files have no content.
     # They don't occupy any of the clusters
-    rest_of_table = table[2:]
+    rest_of_table = table[3:]
     assert rest_of_table == [DdfsConsts.CLUSTER_UNUSED] * len(rest_of_table)
 
     # Test root dir entries
