@@ -14,11 +14,11 @@ def run_tests(ddfs_image_path: str):
     # aaa, bbb and ccc files
     assert table[1] == DdfsConsts.CLUSTER_EOF
     assert table[2] == DdfsConsts.CLUSTER_EOF
-    # assert table[3] == DdfsConsts.CLUSTER_EOF
+    assert table[3] == DdfsConsts.CLUSTER_EOF
 
     # All other cluster should be unused because files have no content.
     # They don't occupy any of the clusters
-    rest_of_table = table[3:]
+    rest_of_table = table[4:]
     assert rest_of_table == [DdfsConsts.CLUSTER_UNUSED] * len(rest_of_table)
 
     # Test root dir entries
@@ -35,7 +35,7 @@ def run_tests(ddfs_image_path: str):
     aaa_cluster = image_reader.read_cluster(1)
     assert aaa_cluster[:len(aaa_content)] == aaa_content
 
-    print(root_entries[0])
+    print(root_entries[1])
     bbb_content = 'bbb content'.encode()
     assert root_entries[1].name == 'bbb\x00'.encode()
     assert root_entries[1].size == len(aaa_content)
@@ -45,10 +45,15 @@ def run_tests(ddfs_image_path: str):
     bbb_cluster = image_reader.read_cluster(2)
     assert bbb_cluster[:len(bbb_content)] == bbb_content
 
-    # assert root_entries[2].name == 'ccc\x00'.encode()
-    # assert root_entries[2].size == 0
-    # assert root_entries[2].first_cluster == 3
-    # assert root_entries[2].attributes == DdfsConsts.FILE_ATTR
+    print(root_entries[2])
+    ccc_content = 'ccc content'.encode()
+    assert root_entries[2].name == 'ccc\x00'.encode()
+    assert root_entries[2].size == len(ccc_content)
+    assert root_entries[2].first_cluster == 3
+    assert root_entries[2].attributes == DdfsConsts.FILE_ATTR
+
+    ccc_cluster = image_reader.read_cluster(3)
+    assert ccc_cluster[:len(ccc_content)] == ccc_content
 
     return 0
 
