@@ -616,31 +616,6 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 		dd_inode->i_logstart = cluster_no;
 		dd_inode->i_start = dd_inode->i_logstart + 3;
 
-		dd_print("assigning first cluster to parent's directory entry");
-		{
-			struct inode *parent_dir_inode =
-				d_inode(file->f_path.dentry->d_parent);
-
-			const struct ddfs_dir_entry_calc_params calc_params =
-				ddfs_make_dir_entry_calc_params(
-					parent_dir_inode);
-
-			const struct dir_entry_ptrs entry_ptrs =
-				ddfs_access_dir_entries(
-					ddfs_default_block_reading_provider, sb,
-					&calc_params, dd_inode->dentry_index,
-					DDFS_PART_FIRST_CLUSTER);
-
-			// Todo: handle entry_ptrs.first_cluster == null
-			*entry_ptrs.first_cluster.ptr = cluster_no;
-
-			ddfs_release_dir_entries(&entry_ptrs,
-						 DDFS_PART_FIRST_CLUSTER);
-
-			inode_inc_iversion(parent_dir_inode);
-			mark_inode_dirty(parent_dir_inode);
-		}
-
 		inode_inc_iversion(inode);
 		mark_inode_dirty(inode);
 	}
@@ -676,6 +651,34 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 	mark_inode_dirty(inode);
 	mark_buffer_dirty(bh);
 	sync_dirty_buffer(bh);
+
+	dd_print("updating dir entry to parent's directory entry");
+	{
+		struct inode *parent_dir_inode =
+			d_inode(file->f_path.dentry->d_parent);
+
+		const struct ddfs_dir_entry_calc_params calc_params =
+			ddfs_make_dir_entry_calc_params(parent_dir_inode);
+
+		const unsigned part_flags =
+			DDFS_PART_FIRST_CLUSTER | DDFS_PART_SIZE;
+		const struct dir_entry_ptrs entry_ptrs =
+			ddfs_access_dir_entries(
+				ddfs_default_block_reading_provider, sb,
+				&calc_params, dd_inode->dentry_index,
+				part_flags);
+
+		// Todo: handle nulls
+		*entry_ptrs.first_cluster.ptr = cluster_no;
+		mark_buffer_dirty(entry_ptrs.first_cluster.bh);
+		*entry_ptrs.size.ptr = inode->i_size;
+		mark_buffer_dirty(entry_ptrs.size.bh);
+
+		ddfs_release_dir_entries(&entry_ptrs, part_flags);
+
+		inode_inc_iversion(parent_dir_inode);
+		mark_inode_dirty(parent_dir_inode);
+	}
 
 	dd_print("calling brelse");
 	brelse(bh);
