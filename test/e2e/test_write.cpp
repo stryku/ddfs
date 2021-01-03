@@ -20,31 +20,31 @@ TEST_CASE("DDFS.Write")
 	REQUIRE(std::fclose(fp) == 0);
 }
 
-// TEST_CASE("DDFS.WriteRead")
-// {
-// 	const auto path = make_path("bbb");
-// 	FILE *fp = std::fopen(path.c_str(), "w");
-// 	REQUIRE(fp != nullptr);
+TEST_CASE("DDFS.WriteRead")
+{
+	const auto path = make_path("bbb");
+	FILE *fp = std::fopen(path.c_str(), "w");
+	REQUIRE(fp != nullptr);
 
-// 	const auto to_write = std::string{ "bbb content" };
+	const auto to_write = std::string{ "bbb content" };
 
-// 	const auto write_size =
-// 		std::fwrite(to_write.data(), 1u, to_write.size(), fp);
+	const auto write_size =
+		std::fwrite(to_write.data(), 1u, to_write.size(), fp);
 
-// 	REQUIRE(write_size == to_write.size());
-// 	REQUIRE(std::fclose(fp) == 0);
+	REQUIRE(write_size == to_write.size());
+	REQUIRE(std::fclose(fp) == 0);
 
-// 	fp = std::fopen(path.c_str(), "r");
-// 	REQUIRE(fp != nullptr);
+	fp = std::fopen(path.c_str(), "r");
+	REQUIRE(fp != nullptr);
 
-// 	std::string result{};
-// 	result.resize(to_write.size());
+	std::string result{};
+	result.resize(to_write.size());
 
-// 	const auto read_size = std::fread(&result[0], 1, to_write.size(), fp);
-// 	REQUIRE(read_size == to_write.size());
-// 	REQUIRE(result == to_write);
-// 	REQUIRE(std::fclose(fp) == 0);
-// }
+	const auto read_size = std::fread(&result[0], 1, to_write.size(), fp);
+	REQUIRE(read_size == to_write.size());
+	REQUIRE(result == to_write);
+	REQUIRE(std::fclose(fp) == 0);
+}
 
 // TEST_CASE("DDFS.MultipleWriteRead")
 // {

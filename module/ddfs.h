@@ -139,7 +139,7 @@ static inline void ddfs_release_dir_entries(const struct dir_entry_ptrs *ptrs,
 
 	dd_print("ddfs_release_dir_entries: ptrs: %p, part_flags: %u", ptrs,
 		 part_flags);
-	dump_dir_entry_ptrs(ptrs);
+	// dump_dir_entry_ptrs(ptrs);
 
 	if (part_flags & DDFS_PART_NAME && ptrs->name.bh) {
 		brelse(ptrs->name.bh);

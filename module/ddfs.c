@@ -500,13 +500,14 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 	unsigned block_on_device = cluster_no * sbi->v.blocks_per_cluster;
 	char *data_ptr;
 
-	dd_print("ddfs_read, file: %p, size: %lu, ppos: %llu", file, size,
-		 *ppos);
+	dd_print("ddfs_read, file: %p, size: %lu, ppos: %llu, name: %s", file,
+		 size, *ppos, file->f_path.dentry->d_name.name);
 
 	dump_ddfs_inode_info(dd_inode);
 
 	lock_data(sbi);
 
+	dd_print("reading block %u", block_on_device);
 	bh = sb_bread(sb, block_on_device);
 	if (!bh) {
 		dd_print("sb_read failed");
@@ -522,6 +523,7 @@ ssize_t ddfs_read(struct file *file, char __user *buf, size_t size,
 	brelse(bh);
 	unlock_data(sbi);
 
+	dd_print("~ddfs_read %lu", size);
 	return size;
 }
 
@@ -603,8 +605,8 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 	unsigned block_on_device;
 	int cluster_no = dd_inode->i_logstart;
 
-	dd_print("ddfs_write, file: %p, size: %lu, ppos: %llu", file, count,
-		 *ppos);
+	dd_print("ddfs_write, file: %p, size: %lu, ppos: %llu, name: %s", file,
+		 count, *ppos, file->f_path.dentry->d_name.name);
 
 	dd_print("inode: %p", inode);
 	dump_ddfs_inode_info(dd_inode);
@@ -628,7 +630,6 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 	dd_print("cluster_on_device: %u", cluster_on_device);
 	dd_print("block_on_device: %u", block_on_device);
 
-	dd_print("calling lock_data");
 	lock_data(sbi);
 
 	bh = sb_bread(sb, block_on_device);
@@ -671,6 +672,7 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 		// Todo: handle nulls
 		*entry_ptrs.first_cluster.ptr = cluster_no;
 		mark_buffer_dirty(entry_ptrs.first_cluster.bh);
+
 		*entry_ptrs.size.ptr = inode->i_size;
 		mark_buffer_dirty(entry_ptrs.size.bh);
 
@@ -682,10 +684,10 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 
 	dd_print("calling brelse");
 	brelse(bh);
-	dd_print("calling unlock_data");
 	unlock_data(sbi);
 	ddfs_sync_inode(inode);
 
+	dump_ddfs_inode_info(dd_inode);
 	dd_print("~ddfs_write %lu", count);
 	return count;
 }
@@ -759,6 +761,8 @@ int ddfs_fill_inode(struct inode *inode, struct ddfs_dir_entry *de)
 
 	dd_inode->i_attrs = de->attributes;
 	inode->i_blocks = inode->i_size / inode->i_sb->s_blocksize;
+
+	dd_inode->dentry_index = de->entry_index;
 
 	dd_print("filled inode");
 	dump_ddfs_inode_info(dd_inode);
@@ -904,6 +908,7 @@ static int ddfs_find(struct inode *dir, const char *name,
 				ddfs_release_dir_entries(&entry_ptrs,
 							 DDFS_PART_ALL);
 
+				dump_ddfs_dir_entry(dest_de);
 				dd_print("~ddfs_find 0");
 				return 0;
 			}
