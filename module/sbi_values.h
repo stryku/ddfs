@@ -23,7 +23,7 @@ struct ddfs_sbi_values {
 	unsigned long block_size; // Size of block (sector) in bytes
 	unsigned int blocks_per_cluster; // Number of blocks (sectors) per cluster
 
-	unsigned int entries_per_cluster; // Dir entries per cluster
+	unsigned int dir_entries_per_cluster; // Dir entries per cluster
 
 	unsigned int name_entries_offset;
 	unsigned int attributes_entries_offset;
@@ -60,18 +60,18 @@ ddfs_calc_sbi_values(const struct ddfs_boot_sector *bs)
 	v.root_cluster = v.data_cluster_no;
 	v.block_size = bs->sector_size;
 
-	v.entries_per_cluster =
+	v.dir_entries_per_cluster =
 		v.cluster_size / v.combined_dir_entry_parts_size;
 
 	v.name_entries_offset = 0;
 	v.attributes_entries_offset =
-		v.entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
-	v.size_entries_offset =
-		v.attributes_entries_offset +
-		v.entries_per_cluster * sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
+		v.dir_entries_per_cluster * DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
+	v.size_entries_offset = v.attributes_entries_offset +
+				v.dir_entries_per_cluster *
+					sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
 	v.first_cluster_entries_offset =
 		v.size_entries_offset +
-		v.entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
+		v.dir_entries_per_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
 
 	return v;
 }

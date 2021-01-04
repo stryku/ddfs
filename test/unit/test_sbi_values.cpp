@@ -41,7 +41,7 @@ TEST_CASE("DDFS.SbiValues.calc_sbi_values")
 
 	const auto expected_entries_per_cluster =
 		bs.sector_size / expected_combined_dir_entry_parts_size;
-	REQUIRE_EQ(sbi_v.entries_per_cluster, expected_entries_per_cluster);
+	REQUIRE_EQ(sbi_v.dir_entries_per_cluster, expected_entries_per_cluster);
 
 	REQUIRE_EQ(sbi_v.name_entries_offset, 0u);
 	REQUIRE_EQ(sbi_v.attributes_entries_offset,

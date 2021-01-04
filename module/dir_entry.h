@@ -26,7 +26,7 @@ struct dir_entry_offsets {
 };
 
 struct ddfs_dir_entry_calc_params {
-	unsigned entries_per_cluster;
+	unsigned dir_entries_per_cluster;
 	unsigned blocks_per_cluster;
 	unsigned data_cluster_no;
 	unsigned block_size;
@@ -63,12 +63,12 @@ inline struct dir_entry_part_offsets ddfs_calc_dir_entry_part_offsets(
 	unsigned entry_part_size)
 {
 	const unsigned entry_index_on_cluster =
-		entry_index % calc_params->entries_per_cluster;
+		entry_index % calc_params->dir_entries_per_cluster;
 
 	// Logical cluster no on which the entry lays
 	const unsigned entry_logic_cluster_no =
 		calc_params->dir_logical_start +
-		(entry_index / calc_params->entries_per_cluster);
+		(entry_index / calc_params->dir_entries_per_cluster);
 
 	// The entry part offset on cluster. In bytes.
 	const unsigned offset_on_cluster =
@@ -103,14 +103,14 @@ struct dir_entry_offsets ddfs_calc_dir_entry_offsets(
 {
 	const unsigned name_entries_offset = 0;
 	const unsigned attributes_entries_offset =
-		calc_params->entries_per_cluster *
+		calc_params->dir_entries_per_cluster *
 		DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
 	const unsigned size_entries_offset =
 		attributes_entries_offset +
-		calc_params->entries_per_cluster *
+		calc_params->dir_entries_per_cluster *
 			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
 	const unsigned first_cluster_entries_offset =
-		size_entries_offset + calc_params->entries_per_cluster *
+		size_entries_offset + calc_params->dir_entries_per_cluster *
 					      sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
 
 	const struct dir_entry_offsets result = {
