@@ -744,25 +744,21 @@ int ddfs_fill_inode(struct inode *inode, struct ddfs_dir_entry *de)
 	dump_ddfs_inode_info(dd_inode);
 	dump_ddfs_dir_entry(de);
 
-	dd_inode->i_pos = 0;
-	inode_inc_iversion(inode);
-	inode->i_generation = get_seconds();
-
 	// Todo: Handle directory filling
 
-	dd_inode->i_start = de->first_cluster;
+	dd_inode->dentry_index = de->entry_index;
+	dd_inode->i_attrs = de->attributes;
+	inode->i_size = de->size;
+	dd_inode->i_logstart = de->first_cluster;
 
-	dd_inode->i_logstart = dd_inode->i_start;
-	inode->i_size = le32_to_cpu(de->size);
+	inode->i_blocks = inode->i_size / inode->i_sb->s_blocksize;
+	inode->i_generation = get_seconds();
+
 	inode->i_op = &ddfs_file_inode_operations;
 	inode->i_fop = &ddfs_file_operations;
 	inode->i_mapping->a_ops = &ddfs_aops;
-	dd_inode->mmu_private = inode->i_size;
 
-	dd_inode->i_attrs = de->attributes;
-	inode->i_blocks = inode->i_size / inode->i_sb->s_blocksize;
-
-	dd_inode->dentry_index = de->entry_index;
+	inode_inc_iversion(inode);
 
 	dd_print("filled inode");
 	dump_ddfs_inode_info(dd_inode);
