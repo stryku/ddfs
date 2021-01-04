@@ -11,7 +11,7 @@ TEST_CASE(
 	"DDFS.DirEntry.calc_dir_entry_offsets.first entry, first cluster, first block")
 {
 	const auto calc_params =
-		ddfs_dir_entry_calc_params{ .entries_per_cluster = 10,
+		ddfs_dir_entry_calc_params{ .dir_entries_per_cluster = 10,
 					    .blocks_per_cluster = 1,
 					    .data_cluster_no = 0,
 					    .block_size = 512,
@@ -39,7 +39,7 @@ TEST_CASE(
 	"DDFS.DirEntry.calc_dir_entry_offsets.3 entry, first cluster, first block")
 {
 	const auto calc_params =
-		ddfs_dir_entry_calc_params{ .entries_per_cluster = 10,
+		ddfs_dir_entry_calc_params{ .dir_entries_per_cluster = 10,
 					    .blocks_per_cluster = 1,
 					    .data_cluster_no = 0,
 					    .block_size = 512,
@@ -71,7 +71,7 @@ TEST_CASE(
 	"DDFS.DirEntry.calc_dir_entry_offsets.7 entry, first cluster, mixed blocks")
 {
 	const auto calc_params =
-		ddfs_dir_entry_calc_params{ .entries_per_cluster = 30,
+		ddfs_dir_entry_calc_params{ .dir_entries_per_cluster = 30,
 					    .blocks_per_cluster = 2,
 					    .data_cluster_no = 5,
 					    .block_size = 256,
@@ -90,7 +90,7 @@ TEST_CASE(
 
 	// =127 -> first block on cluster
 	const auto expected_atr_offset =
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 		7 * sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
 	REQUIRE_EQ(result.attributes.block_on_device,
@@ -99,7 +99,7 @@ TEST_CASE(
 
 	// =206 -> first block on cluster
 	const auto expected_size_offset =
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			(DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 			 sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE)) +
 		7 * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
@@ -108,7 +108,7 @@ TEST_CASE(
 
 	// =418 -> second block on cluster, thus offset on block = 418 - 256
 	const auto expected_first_cluster_offset =
-		(calc_params.entries_per_cluster *
+		(calc_params.dir_entries_per_cluster *
 			 (DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 			  sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
 			  sizeof(DDFS_DIR_ENTRY_SIZE_TYPE)) +
@@ -124,7 +124,7 @@ TEST_CASE(
 	"DDFS.DirEntry.calc_dir_entry_offsets.40 entry, far cluster, mixed blocks")
 {
 	const auto calc_params =
-		ddfs_dir_entry_calc_params{ .entries_per_cluster = 30,
+		ddfs_dir_entry_calc_params{ .dir_entries_per_cluster = 30,
 					    .blocks_per_cluster = 2,
 					    .data_cluster_no = 5,
 					    .block_size = 256,
@@ -136,7 +136,8 @@ TEST_CASE(
 		calc_params.blocks_per_cluster * expected_entry_cluster;
 
 	const auto entry = 40;
-	const auto entry_on_cluster = entry - calc_params.entries_per_cluster;
+	const auto entry_on_cluster =
+		entry - calc_params.dir_entries_per_cluster;
 	const auto result = ddfs_calc_dir_entry_offsets(&calc_params, entry);
 
 	// =28 -> first block on cluster
@@ -146,7 +147,7 @@ TEST_CASE(
 
 	// =127 -> first block on cluster
 	const auto expected_atr_offset =
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 		entry_on_cluster * sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
 	REQUIRE_EQ(result.attributes.block_on_device,
@@ -155,7 +156,7 @@ TEST_CASE(
 
 	// =206 -> first block on cluster
 	const auto expected_size_offset =
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			(DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 			 sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE)) +
 		entry_on_cluster * sizeof(DDFS_DIR_ENTRY_SIZE_TYPE);
@@ -164,7 +165,7 @@ TEST_CASE(
 
 	// =418 -> second block on cluster, thus offset on block = 418 - 256
 	const auto expected_first_cluster_offset =
-		(calc_params.entries_per_cluster *
+		(calc_params.dir_entries_per_cluster *
 			 (DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE +
 			  sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE) +
 			  sizeof(DDFS_DIR_ENTRY_SIZE_TYPE)) +
@@ -191,7 +192,7 @@ static ddfs_block block_provider_fun(void *data, unsigned block_no)
 TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 {
 	const auto calc_params =
-		ddfs_dir_entry_calc_params{ .entries_per_cluster = 30,
+		ddfs_dir_entry_calc_params{ .dir_entries_per_cluster = 30,
 					    .blocks_per_cluster = 2,
 					    .data_cluster_no = 0,
 					    .block_size = 256,
@@ -204,18 +205,18 @@ TEST_CASE("DDFS.ddfs_access_dir_entries.name")
 	const auto expected_name_offset = 0;
 	const auto expected_attributes_offset =
 		expected_name_offset +
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			DDFS_DIR_ENTRY_NAME_CHARS_IN_PLACE;
 	const auto expected_size_offset =
 		expected_attributes_offset +
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			sizeof(DDFS_DIR_ENTRY_ATTRIBUTES_TYPE);
 
 	// It's on the second cluster, not the first one.
 	// That's why wee need to substract the block_size (256)
 	const auto expected_first_cluster_offset =
 		expected_size_offset +
-		calc_params.entries_per_cluster *
+		calc_params.dir_entries_per_cluster *
 			sizeof(DDFS_DIR_ENTRY_SIZE_TYPE) -
 		calc_params.block_size;
 

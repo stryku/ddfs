@@ -27,7 +27,7 @@ ddfs_make_dir_entry_calc_params(struct inode *dir)
 	const struct ddfs_sb_info *sbi = DDFS_SB(sb);
 
 	const struct ddfs_dir_entry_calc_params result = {
-		.entries_per_cluster = sbi->v.entries_per_cluster,
+		.dir_entries_per_cluster = sbi->v.dir_entries_per_cluster,
 		.blocks_per_cluster = sbi->v.blocks_per_cluster,
 		.data_cluster_no = sbi->v.data_cluster_no,
 		.block_size = sb->s_blocksize,
