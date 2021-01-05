@@ -20,8 +20,10 @@
  * DDFS inode data in memory
  */
 struct ddfs_inode_info {
-	unsigned dentry_index; //
+	unsigned dentry_index;
 	unsigned number_of_entries;
+	int i_logstart; /* logical first cluster */
+	int i_attrs;
 
 	// fat stuff:
 	spinlock_t cache_lru_lock;
@@ -33,9 +35,6 @@ struct ddfs_inode_info {
 	/* NOTE: mmu_private is 64bits, so must hold ->i_mutex to access */
 	loff_t mmu_private; /* physically allocated size */
 
-	int i_start; /* first cluster or 0 */
-	int i_logstart; /* logical first cluster */
-	int i_attrs; /* unused attribute bits */
 	loff_t i_pos; /* on-disk position of directory entry or 0 */
 	struct hlist_node i_fat_hash; /* hash by i_location */
 	struct hlist_node i_dir_hash; /* hash by i_logstart */
@@ -48,7 +47,6 @@ inline void dump_ddfs_inode_info(struct ddfs_inode_info *info)
 	dd_print("dump_ddfs_inode_info, info: %p", info);
 	dd_print("\t\tinfo->dentry_index: %u", info->dentry_index);
 	dd_print("\t\tinfo->number_of_entries: %u", info->number_of_entries);
-	dd_print("\t\tinfo->i_start: %d", info->i_start);
 	dd_print("\t\tinfo->i_logstart: %d", info->i_logstart);
 	dd_print("\t\tinfo->i_attrs: %d", info->i_attrs);
 	dd_print("\t\tinfo->i_pos: %llu", info->i_pos);
