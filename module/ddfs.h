@@ -35,7 +35,6 @@ struct ddfs_inode_info {
 	/* NOTE: mmu_private is 64bits, so must hold ->i_mutex to access */
 	loff_t mmu_private; /* physically allocated size */
 
-	loff_t i_pos; /* on-disk position of directory entry or 0 */
 	struct hlist_node i_fat_hash; /* hash by i_location */
 	struct hlist_node i_dir_hash; /* hash by i_logstart */
 	struct rw_semaphore truncate_lock; /* protect bmap against truncate */
@@ -49,7 +48,6 @@ inline void dump_ddfs_inode_info(struct ddfs_inode_info *info)
 	dd_print("\t\tinfo->number_of_entries: %u", info->number_of_entries);
 	dd_print("\t\tinfo->i_logstart: %d", info->i_logstart);
 	dd_print("\t\tinfo->i_attrs: %d", info->i_attrs);
-	dd_print("\t\tinfo->i_pos: %llu", info->i_pos);
 }
 
 static inline void dump_ddfs_dir_entry(const struct ddfs_dir_entry *entry)

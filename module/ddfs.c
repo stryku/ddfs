@@ -1061,9 +1061,6 @@ static int ddfs_read_root(struct inode *inode)
 
 	dd_print("ddfs_read_root %p", inode);
 
-	dd_inode->i_pos = DDFS_ROOT_INO;
-	inode_inc_iversion(inode);
-
 	inode->i_generation = 0;
 	inode->i_mode = ddfs_make_mode(sbi, DDFS_DIR_ATTR, S_IRWXUGO);
 	dd_print("root inode->i_mode: %x", inode->i_mode);
@@ -1079,6 +1076,8 @@ static int ddfs_read_root(struct inode *inode)
 	dd_inode->mmu_private = inode->i_size;
 
 	dd_inode->i_attrs |= DDFS_DIR_ATTR;
+
+	inode_inc_iversion(inode);
 
 	ddfs_take_first_root_cluster_if_not_taken(sbi);
 
