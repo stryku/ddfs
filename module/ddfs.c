@@ -98,8 +98,8 @@ static struct inode *ddfs_alloc_inode(struct super_block *sb)
 	dd_print("calling init_rwsem");
 	init_rwsem(&ei->truncate_lock);
 
-	dd_print("~ddfs_alloc_inode %p", &ei->ddfs_inode);
-	return &ei->ddfs_inode;
+	dd_print("~ddfs_alloc_inode %p", &ei->vfs_inode);
+	return &ei->vfs_inode;
 }
 
 static void ddfs_free_inode(struct inode *inode)
@@ -1210,7 +1210,7 @@ static void init_once(void *foo)
 	INIT_LIST_HEAD(&ei->cache_lru);
 	INIT_HLIST_NODE(&ei->i_fat_hash);
 	INIT_HLIST_NODE(&ei->i_dir_hash);
-	inode_init_once(&ei->ddfs_inode);
+	inode_init_once(&ei->vfs_inode);
 }
 
 static int __init ddfs_init_inodecache(void)

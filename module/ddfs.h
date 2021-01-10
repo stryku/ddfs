@@ -38,7 +38,7 @@ struct ddfs_inode_info {
 	struct hlist_node i_fat_hash; /* hash by i_location */
 	struct hlist_node i_dir_hash; /* hash by i_logstart */
 	struct rw_semaphore truncate_lock; /* protect bmap against truncate */
-	struct inode ddfs_inode; // Todo: Should be named vfs_inode
+	struct inode vfs_inode;
 };
 
 inline void dump_ddfs_inode_info(struct ddfs_inode_info *info)
@@ -63,7 +63,7 @@ static inline void dump_ddfs_dir_entry(const struct ddfs_dir_entry *entry)
 
 static inline struct ddfs_inode_info *DDFS_I(struct inode *inode)
 {
-	return container_of(inode, struct ddfs_inode_info, ddfs_inode);
+	return container_of(inode, struct ddfs_inode_info, vfs_inode);
 }
 
 struct ddfs_sb_info {
