@@ -98,8 +98,8 @@ static struct inode *ddfs_alloc_inode(struct super_block *sb)
 	dd_print("calling init_rwsem");
 	init_rwsem(&ei->truncate_lock);
 
-	dd_print("~ddfs_alloc_inode %p", &ei->ddfs_inode);
-	return &ei->ddfs_inode;
+	dd_print("~ddfs_alloc_inode %p", &ei->vfs_inode);
+	return &ei->vfs_inode;
 }
 
 static void ddfs_free_inode(struct inode *inode)
@@ -177,30 +177,30 @@ static int ddfs_free(struct inode *inode, int skip)
 {
 	struct super_block *sb = inode->i_sb;
 	struct ddfs_sb_info *sbi = DDFS_SB(sb);
-	int err, wait, free_start, i_start, i_logstart;
+	int err, wait, i_logstart;
 	struct ddfs_inode_info *dd_inode = DDFS_I(inode);
-	struct buffer_head *bh;
+	struct ddfs_table table;
 
-	if (dd_inode->i_start == 0)
+	dd_print("ddfs_free inode: %p, skip: %d", inode, skip);
+	dump_ddfs_inode_info(dd_inode);
+
+	if (dd_inode->i_logstart == DDFS_CLUSTER_NOT_ASSIGNED)
 		return 0;
 
 	// fat_cache_inval_inode(inode);
 
 	wait = IS_DIRSYNC(inode);
-	i_start = free_start = dd_inode->i_start;
 	i_logstart = dd_inode->i_logstart;
 
 	/* First, we write the new file size. */
 	if (!skip) {
-		dd_inode->i_start = 0;
-		dd_inode->i_logstart = 0;
+		dd_inode->i_logstart = DDFS_CLUSTER_NOT_ASSIGNED;
 	}
 	// dd_inode->i_attrs |= ATTR_ARCH;
 	// fat_truncate_time(inode, NULL, S_CTIME | S_MTIME);
 	if (wait) {
 		err = ddfs_sync_inode(inode);
 		if (err) {
-			dd_inode->i_start = i_start;
 			dd_inode->i_logstart = i_logstart;
 			return err;
 		}
@@ -210,55 +210,15 @@ static int ddfs_free(struct inode *inode, int skip)
 
 	inode->i_blocks = 0;
 
-	{
-		// Index of cluster entry in table.
-		const unsigned cluster_no = dd_inode->i_logstart;
-		// How many cluster indices fit in one cluster, in table.
-		const unsigned cluster_idx_per_cluster =
-			sbi->v.cluster_size / 4u;
-		// Cluster of table on which `cluster_no` lays.
-		const unsigned table_cluster_no_containing_cluster_no =
-			cluster_no / cluster_idx_per_cluster;
-		// Index of block on the cluster, on which `cluster_no` lays.
-		const unsigned block_no_containing_cluster_no =
-			(cluster_no % cluster_idx_per_cluster) /
-			sbi->v.blocks_per_cluster;
-		// Index of block on device, on which `cluster_no` lays.
-		// Calculated:
-		//    1 cluster for boot sector * blocks_per_cluster
-		//    + table_cluster_no_containing_cluster_no * blocks_per_cluster
-		//    +  block_no_containing_cluster_no
-		const unsigned device_block_no_containing_cluster_no =
-			sbi->v.blocks_per_cluster +
-			table_cluster_no_containing_cluster_no *
-				sbi->v.blocks_per_cluster +
-			block_no_containing_cluster_no;
-		// Cluster index on the block
-		const unsigned cluster_idx_on_block =
-			cluster_no % (sb->s_blocksize / 4u);
+	lock_table(sbi);
+	table = ddfs_table_access(ddfs_default_block_reading_provider, sb,
+				  &sbi->v);
 
-		DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *cluster_index_ptr;
+	table.clusters[i_logstart] = DDFS_CLUSTER_UNUSED;
 
-		lock_table(sbi);
-
-		// Read the block
-		bh = sb_bread(sb, device_block_no_containing_cluster_no);
-		if (!bh) {
-			dd_error("unable to read inode block to free ");
-			return -EIO;
-		}
-
-		cluster_index_ptr =
-			(DDFS_DIR_ENTRY_FIRST_CLUSTER_TYPE *)(bh->b_data) +
-			cluster_idx_on_block;
-
-		// Finally, write cluster as unused:
-		*cluster_index_ptr = DDFS_CLUSTER_UNUSED;
-
-		brelse(bh);
-
-		unlock_table(sbi);
-	}
+	mark_buffer_dirty(table.block.bh);
+	brelse(table.block.bh);
+	unlock_table(sbi);
 
 	return 0;
 }
@@ -301,9 +261,6 @@ void ddfs_truncate_blocks(struct inode *inode, loff_t offset)
 static void ddfs_evict_inode(struct inode *inode)
 {
 	truncate_inode_pages_final(&inode->i_data);
-
-	ddfs_truncate_blocks(inode, 0);
-
 	invalidate_inode_buffers(inode);
 	clear_inode(inode);
 	// fat_cache_inval_inode(inode);
@@ -616,7 +573,6 @@ static ssize_t ddfs_write(struct file *file, const char __user *u, size_t count,
 		cluster_no = ddfs_find_free_cluster(inode->i_sb);
 		// Todo: handle cluster_no == -1 which means no free cluster available
 		dd_inode->i_logstart = cluster_no;
-		dd_inode->i_start = dd_inode->i_logstart + 3;
 
 		inode_inc_iversion(inode);
 		mark_inode_dirty(inode);
@@ -744,25 +700,21 @@ int ddfs_fill_inode(struct inode *inode, struct ddfs_dir_entry *de)
 	dump_ddfs_inode_info(dd_inode);
 	dump_ddfs_dir_entry(de);
 
-	dd_inode->i_pos = 0;
-	inode_inc_iversion(inode);
-	inode->i_generation = get_seconds();
-
 	// Todo: Handle directory filling
 
-	dd_inode->i_start = de->first_cluster;
+	dd_inode->dentry_index = de->entry_index;
+	dd_inode->i_attrs = de->attributes;
+	inode->i_size = de->size;
+	dd_inode->i_logstart = de->first_cluster;
 
-	dd_inode->i_logstart = dd_inode->i_start;
-	inode->i_size = le32_to_cpu(de->size);
+	inode->i_blocks = inode->i_size / inode->i_sb->s_blocksize;
+	inode->i_generation = get_seconds();
+
 	inode->i_op = &ddfs_file_inode_operations;
 	inode->i_fop = &ddfs_file_operations;
 	inode->i_mapping->a_ops = &ddfs_aops;
-	dd_inode->mmu_private = inode->i_size;
 
-	dd_inode->i_attrs = de->attributes;
-	inode->i_blocks = inode->i_size / inode->i_sb->s_blocksize;
-
-	dd_inode->dentry_index = de->entry_index;
+	inode_inc_iversion(inode);
 
 	dd_print("filled inode");
 	dump_ddfs_inode_info(dd_inode);
@@ -1109,25 +1061,23 @@ static int ddfs_read_root(struct inode *inode)
 
 	dd_print("ddfs_read_root %p", inode);
 
-	dd_inode->i_pos = DDFS_ROOT_INO;
-	inode_inc_iversion(inode);
-
 	inode->i_generation = 0;
 	inode->i_mode = ddfs_make_mode(sbi, DDFS_DIR_ATTR, S_IRWXUGO);
 	dd_print("root inode->i_mode: %x", inode->i_mode);
 	inode->i_op = sbi->dir_ops;
 	inode->i_fop = &ddfs_dir_operations;
 
-	dd_inode->i_start = sbi->v.root_cluster;
-
 	// Todo: handle root bigget than one cluster
 	inode->i_size = sbi->v.cluster_size;
 	inode->i_blocks = sbi->v.blocks_per_cluster;
 
 	dd_inode->i_logstart = 0;
+	;
 	dd_inode->mmu_private = inode->i_size;
 
 	dd_inode->i_attrs |= DDFS_DIR_ATTR;
+
+	inode_inc_iversion(inode);
 
 	ddfs_take_first_root_cluster_if_not_taken(sbi);
 
@@ -1260,7 +1210,7 @@ static void init_once(void *foo)
 	INIT_LIST_HEAD(&ei->cache_lru);
 	INIT_HLIST_NODE(&ei->i_fat_hash);
 	INIT_HLIST_NODE(&ei->i_dir_hash);
-	inode_init_once(&ei->ddfs_inode);
+	inode_init_once(&ei->vfs_inode);
 }
 
 static int __init ddfs_init_inodecache(void)
